@@ -106,7 +106,7 @@ try {
         if ($LASTEXITCODE -ne 0) { Fail 'The packages could not be installed. Check the internet connection and run it again.' }
     }
     Remove-Item $Errs -ErrorAction SilentlyContinue
-    & $Py -c 'import bw2data, bw2calc, bw2io, fastapi, uvicorn, sentier_brightway, ecoinvent_interface'
+    & $Py -c 'import bw2data, bw2calc, bw2io, fastapi, uvicorn, sentier_brightway, ecoinvent_interface' *> $null
     if ($LASTEXITCODE -ne 0) { Fail 'Installation check failed.' }
     Remove-Item -Recurse -Force (Join-Path $Tools 'cache') -ErrorAction SilentlyContinue   # downloads only, about 300 MB
 } catch {

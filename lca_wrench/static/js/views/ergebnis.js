@@ -56,12 +56,15 @@ function factorNotice(r) {
   const f = r.factors;
   const sw = f.completable ? `<label class="row" style="gap:6px;font-size:13.5px" title="${t('Die Methode hat für manche Stoffe nur einen Faktor auf dem Fluss ohne Subkompartiment. Ein Fluss ohne Faktor bekommt dann den Faktor des gleichnamigen Flusses ohne Subkompartiment im selben Kompartiment. Eigene Faktoren der Methode (auch 0) bleiben, Langzeit-Emissionen werden nie ergänzt. Gilt für alle Rechnungen.')}"><input type="checkbox" id="complChk" ${f.completion ? 'checked' : ''}> ${t('Fehlende Faktoren für Subkompartimente ergänzen ({n} in dieser Methode)', { n: nf(f.completable) })}</label>` : '';
   if (!f.uncharacterized && !sw) return '';
-  const est = f.namesakes ? ' ' + t('Würden sie gleich bewertet, kämen etwa {v} {u} dazu (Schätzung).', { v: nf(f.estimate), u: esc(r.method_unit) }) : '';
+  // loud only where it matters: the namesakes would add more than 0.1 % of the result. Most flows of an inventory
+  // have no factor in any one method (a climate method assesses a few dozen of some thousand), which is normal.
+  const loud = f.namesakes > 0 && Math.abs(f.estimate) > 1e-3 * Math.abs(r.score || 0);
+  const est = loud ? ' ' + t('Würden sie gleich bewertet, kämen etwa {v} {u} dazu (Schätzung).', { v: nf(f.estimate), u: esc(r.method_unit) }) : '';
   const txt = !f.uncharacterized ? ''
-    : f.namesakes ? `<b>${t('{k} von {n} Flüssen haben keinen Faktor; {s} tragen denselben Namen wie ein bewerteter Fluss.', { k: nf(f.uncharacterized), n: nf(f.flows), s: nf(f.namesakes) })}</b>${est}`
+    : loud ? `<b>${t('{k} von {n} Flüssen haben keinen Faktor; {s} tragen denselben Namen wie ein bewerteter Fluss.', { k: nf(f.uncharacterized), n: nf(f.flows), s: nf(f.namesakes) })}</b>${est}`
       : t('{k} von {n} Flüssen des Inventars haben in dieser Methode keinen Faktor.', { k: nf(f.uncharacterized), n: nf(f.flows) });
   const link = f.uncharacterized ? ` <button class="linkbtn" data-act="inv-filter" data-k="none">${t('Liste zeigen')}</button>` : '';
-  return `<div id="factorNotice" class="${f.namesakes ? 'warnbox' : 'row muted'}" style="${f.namesakes ? 'flex-direction:column;gap:6px' : 'font-size:13.5px;justify-content:space-between'}"><span>${txt}${link}</span>${sw}</div>`;
+  return `<div id="factorNotice" class="${loud ? 'warnbox' : 'row muted'}" style="${loud ? 'flex-direction:column;gap:6px' : 'font-size:13.5px;justify-content:space-between'}"><span>${txt}${link}</span>${sw}</div>`;
 }
 
 const busy = () => `<p class="busy">${t('Rechne …')}</p>`;
