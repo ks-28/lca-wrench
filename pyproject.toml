@@ -11,8 +11,8 @@ requires-python = ">=3.12"
 license = "BSD-3-Clause"
 license-files = ["LICENSE", "lca_wrench/static/fonts/OFL.txt"]
 authors = [
-  { name = "Stephan Pfister" },
   { name = "Kilian Pfister" },
+  { name = "Stephan Pfister" },
 ]
 maintainers = [{ name = "Kilian Pfister" }]
 keywords = ["life cycle assessment", "LCA", "Brightway", "ecoinvent", "environmental impact"]

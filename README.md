@@ -111,7 +111,7 @@ flows without sub-compartment, so emissions into sub-compartments count as zero 
 
 See [CITATION.cff](CITATION.cff). In plain text:
 
-Pfister, K. and Pfister, S  (2026). LCA Wrench (version 0.1.0). https://github.com/lca-wrench/lca-wrench
+Pfister, K. and Pfister, S. (2026). LCA Wrench (version 0.1.0). https://github.com/lca-wrench/lca-wrench
 
 ## Licence
 
@@ -119,7 +119,7 @@ BSD 3-Clause, see [LICENSE](LICENSE). Copyright (c) 2026 Stephan Pfister and Kil
 
 ## Authors
 
-Kilian Pfister, and Stephan Pfister, ETH Zurich, Institute of Environmental Engineering. Maintainer: Kilian Pfister
+Kilian Pfister and Stephan Pfister (ETH Zurich, Institute of Environmental Engineering). Maintainer: Kilian Pfister
 ([@misterpfister8](https://github.com/misterpfister8)). Questions and bug reports through
 [GitHub Issues](https://github.com/lca-wrench/lca-wrench/issues).
 
@@ -131,5 +131,8 @@ LCA Wrench builds on [Brightway](https://docs.brightway.dev) (bw2data, bw2calc, 
 [randonneur_data](https://github.com/brightway-lca/randonneur_data) (UNEP GLAD mapping, CC BY 4.0),
 [premise](https://github.com/polca/premise) and [EXIOBASE](https://www.exiobase.eu). The interface uses the IBM Plex
 fonts (SIL Open Font License 1.1, bundled in `lca_wrench/static/fonts/`).
-This is an output from the Greengrocer Horizon Europe project, co-funded by the European Union and the Swiss Confederation 
-(https://greengrocer.nilu.no/)
+
+Stephan Pfister's work on LCA Wrench was supported by the [GreenGrocer](https://greengrocer.nilu.no/) project
+(Horizon Europe, project no. 101182025), co-funded by the European Union and the Swiss Confederation. Views and
+opinions expressed are those of the authors only and do not necessarily reflect those of the European Union or the
+Swiss Confederation.
