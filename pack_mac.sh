@@ -63,7 +63,11 @@ PLIST
   PROFILE="${LCA_WRENCH_NOTARY_PROFILE:-}"
   if [ -n "$PROFILE" ]; then
     ditto -c -k --keepParent "$APP" dist/mac/notarize.zip
-    xcrun notarytool submit dist/mac/notarize.zip --keychain-profile "$PROFILE" --wait
+    xcrun notarytool submit dist/mac/notarize.zip --keychain-profile "$PROFILE" --wait | tee dist/mac/notary.txt
+    if ! grep -q "status: Accepted" dist/mac/notary.txt; then
+      echo "Notarization not accepted. Reason: xcrun notarytool log <id> --keychain-profile \"$PROFILE\"" >&2
+      exit 1
+    fi
     xcrun stapler staple "$APP"
     xcrun stapler validate "$APP"
   else

@@ -1,16 +1,19 @@
 LCA Wrench – installation on the Mac
 ====================================
 
-1. Put this folder "LCA-Wrench" in a permanent place, best in your home folder (the house icon) or in
-   Applications. In Documents, Desktop or Downloads macOS asks for Terminal access at every start.
-2. Double-click "Install LCA Wrench". macOS blocks it the first time, because the file is not from the
-   App Store: System Settings → Privacy & Security → at the bottom "Open Anyway", then double-click again.
-   (On older macOS versions, right-click → Open works too.)
-   A Terminal window shows the progress. Takes about 3 to 5 minutes, needs internet.
+1. Open "Install LCA Wrench" from the downloaded zip. The app is signed and notarized by Apple; macOS asks
+   once whether to open an app downloaded from the internet.
+2. Choose the folder: by default "LCA-Wrench" in your home folder (the house icon). In Documents, Desktop or
+   Downloads macOS asks for Terminal access at every start. The installer copies this folder there and runs
+   "Install LCA Wrench" in it: a Terminal window shows the progress. Takes about 3 to 5 minutes, needs internet.
    Everything is installed inside this folder only. The Activity Browser, conda and the
    Brightway projects are not changed. No administrator password needed.
+   To update, run a newer installer into the same folder: the Python and the packages stay.
 3. Start: double-click the app "LCA Wrench" on the desktop (the installer puts it there), or "Start LCA Wrench" in this
-   folder; the first time allow it as above.
+   folder.
+   A package built without a signature is this folder alone: put it in a permanent place and double-click
+   "Install LCA Wrench". macOS blocks it the first time: System Settings → Privacy & Security → at the bottom
+   "Open Anyway", then double-click again (on older macOS versions: right-click → Open).
    The browser opens LCA Wrench (Google Chrome works best). Keep the Terminal window open,
    closing it stops LCA Wrench.
 4. The interface is in English. "Deutsch" at the top right switches it to German.
@@ -53,17 +56,20 @@ Remove: move the folder "LCA-Wrench" to the Trash. Copies LCA Wrench created are
 LCA Wrench – Installation auf dem Mac (Deutsch)
 ===============================================
 
-1. Diesen Ordner «LCA-Wrench» an einen festen Ort legen, am besten in den Benutzerordner (das Haus-Symbol)
-   oder in «Programme». In «Dokumente», «Schreibtisch» oder «Downloads» fragt macOS beim Start jedes Mal
-   nach Zugriffsrechten für das Terminal.
-2. Doppelklick auf «Install LCA Wrench». macOS blockiert das beim ersten Mal, weil die Datei nicht aus
-   dem App Store kommt: Systemeinstellungen → Datenschutz & Sicherheit → ganz unten «Dennoch öffnen»,
-   danach nochmals doppelklicken. (Auf älteren macOS-Versionen geht auch: Rechtsklick → «Öffnen».)
-   Ein Terminal-Fenster zeigt den Fortschritt. Dauer: etwa 3 bis 5 Minuten, Internet nötig.
+1. «Install LCA Wrench» aus dem heruntergeladenen Zip öffnen. Die App ist von Apple signiert und beglaubigt;
+   macOS fragt einmal, ob eine aus dem Internet geladene App geöffnet werden soll.
+2. Den Ordner wählen: vorgeschlagen ist «LCA-Wrench» im Benutzerordner (das Haus-Symbol). In «Dokumente»,
+   «Schreibtisch» oder «Downloads» fragt macOS beim Start jedes Mal nach Zugriffsrechten für das Terminal.
+   Die Installation kopiert diesen Ordner dorthin und startet darin «Install LCA Wrench»: ein Terminal-Fenster
+   zeigt den Fortschritt. Dauer: etwa 3 bis 5 Minuten, Internet nötig.
    Alles wird nur in diesen Ordner installiert. Der Activity Browser, conda und die
    Brightway-Projekte werden nicht verändert. Kein Administrator-Passwort nötig.
+   Zum Aktualisieren eine neuere Installation in denselben Ordner laufen lassen: Python und Pakete bleiben.
 3. Starten: Doppelklick auf die App «LCA Wrench» auf dem Schreibtisch (legt die Installation dorthin) oder auf «Start LCA Wrench»
-   in diesem Ordner, beim ersten Mal wie oben freigeben.
+   in diesem Ordner.
+   Ein Paket ohne Signatur ist nur dieser Ordner: an einen festen Ort legen und «Install LCA Wrench»
+   doppelklicken. macOS blockiert das beim ersten Mal: Systemeinstellungen → Datenschutz & Sicherheit → ganz
+   unten «Dennoch öffnen», danach nochmals doppelklicken (auf älteren macOS-Versionen: Rechtsklick → «Öffnen»).
    Der Browser öffnet LCA Wrench (am besten Google Chrome). Das Terminal-Fenster offen lassen,
    Schliessen beendet LCA Wrench.
 4. Die Oberfläche ist englisch. «Deutsch» oben rechts schaltet auf Deutsch um (der Browser merkt es sich).

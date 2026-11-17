@@ -14,10 +14,17 @@ opened in the [Activity Browser](https://github.com/LCA-ActivityBrowser/activity
 
 ## Install
 
-**Release packages.** Download `LCA-Wrench-Mac.zip` or `LCA-Wrench-Windows.zip` from the
-[releases page](https://github.com/lca-wrench/lca-wrench/releases), unpack, run **Install LCA Wrench** (it sets up its
-own Python and the packages inside the folder; no administrator rights, internet needed), then **Start LCA Wrench**.
-The Windows package is less tested than the macOS one. Details: [docs/install.md](docs/install.md).
+**Release packages.** From the [releases page](https://github.com/lca-wrench/lca-wrench/releases):
+
+- **macOS:** download `LCA-Wrench-Mac.zip` and open **Install LCA Wrench**. The app is signed and notarized by Apple;
+  macOS asks once whether to open an app downloaded from the internet. Choose the folder (default `~/LCA-Wrench`),
+  then start **LCA Wrench** from the Desktop.
+- **Windows:** download `LCA-Wrench-Windows.zip`, unpack, run **Install LCA Wrench**, then **Start LCA Wrench**.
+  Windows warns the first time because the script is not signed ("More info" → "Run anyway").
+
+The installer sets up its own Python and the packages inside the LCA Wrench folder (no administrator rights, internet
+needed, 3 to 5 minutes). The Windows package is less tested than the macOS one. Details:
+[docs/install.md](docs/install.md).
 
 **From source (macOS and Linux).**
 

@@ -51,6 +51,11 @@ AS
   done
 fi
 
+# the installer writes this path into the desktop app's launch script: no characters that break it
+case "$TARGET" in
+  *'"'* | *'$'* | *'`'* | *'\'*)
+    alert "The path $TARGET contains one of the characters \" \$ \` \\. Choose another place."; exit 1 ;;
+esac
 # an existing folder is only used when it is an LCA Wrench folder (then this is an update: the app files are
 # replaced, its Python, the packages and the log stay)
 if [ -e "$TARGET" ] && [ ! -f "$TARGET/VERSION" ] && [ -n "$(ls -A "$TARGET" 2>/dev/null)" ]; then
@@ -58,6 +63,10 @@ if [ -e "$TARGET" ] && [ ! -f "$TARGET/VERSION" ] && [ -n "$(ls -A "$TARGET" 2>/
   exit 1
 fi
 mkdir -p "$TARGET" 2>/dev/null || { alert "No write access to $TARGET. Choose another place."; exit 1; }
+# update: the old app code goes first, so no files of the older version stay behind (no user data in there)
+if [ -f "$TARGET/VERSION" ] && [ -d "$TARGET/lca_wrench" ]; then
+  rm -rf "$TARGET/lca_wrench" || { alert "No write access to $TARGET. Choose another place."; exit 1; }
+fi
 # --noqtn: the copies do not carry the "downloaded from the internet" mark of this app
 /usr/bin/ditto --noqtn --norsrc "$PAYLOAD" "$TARGET" || { alert "Copying to $TARGET failed."; exit 1; }
 /usr/bin/xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null

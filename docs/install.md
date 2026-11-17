@@ -7,13 +7,22 @@ Two routes: the release packages (no terminal needed) and installation from sour
 
 `LCA-Wrench-Mac.zip` and `LCA-Wrench-Windows.zip` are attached to the
 [GitHub release](https://github.com/lca-wrench/lca-wrench/releases). Each contains the app, `requirements-lock.txt`
-(the tested package versions), a `README.txt` (English first, German below) and two double-click scripts.
+(the tested package versions), a `README.txt` (English first, German below) and two double-click scripts. On macOS
+these are packed inside an installer app (below).
 
 The Windows package has been tested less than the macOS one.
 
 ### macOS
 
-- **Install LCA Wrench** downloads the tool `uv` and, with it, its own Python 3.12 and the packages. Everything goes
+- `LCA-Wrench-Mac.zip` holds **Install LCA Wrench.app**, signed with a Developer ID and notarized by Apple, so macOS
+  only asks once whether to open an app downloaded from the internet. The app contains the folder `LCA-Wrench` (the
+  app code, the two double-click scripts, `README.txt`, the lock files, the licence). It asks where to install
+  (default `~/LCA-Wrench`, or "Other folder…": a folder `LCA-Wrench` inside the chosen one), copies the folder there
+  without the "downloaded from the internet" mark, and opens "Install LCA Wrench" in that folder. An existing folder is
+  only used if it is an LCA Wrench folder: then this is an update, the app code is replaced and the Python, the
+  packages and the log stay. Sources: `mac/installer/` (`bootstrap.sh`, and `launcher.c`, the small main executable
+  that runs it). The app is self-contained because macOS runs downloaded apps from a temporary read-only location.
+- **Install LCA Wrench** (the script in the installed folder) downloads the tool `uv` and, with it, its own Python 3.12 and the packages. Everything goes
   into the unpacked folder: no administrator password, no change to PATH, no conda. An internet connection and a few
   minutes are needed. If the tested versions do not fit the computer (for example an older Intel Mac), the installer takes the
   same Brightway versions from `requirements-app.txt` and the newest matching versions of the other packages.
@@ -22,8 +31,11 @@ The Windows package has been tested less than the macOS one.
   launcher (`LCA Wrench.app`, icon `mac/AppIcon.icns`) that opens "Start LCA Wrench" of this folder. It is created on the
   computer itself, so macOS does not block it. If the folder is moved, the launcher says so and the installer creates it
   again.
-- macOS blocks scripts without an Apple signature the first time: right-click, "Open"; on newer versions System
-  Settings, Privacy & Security, "Open Anyway". Transferring the folder by USB stick does not set this block.
+- If the folder is in Documents, Desktop or Downloads, macOS asks for Terminal access to it; the home folder avoids
+  that.
+- A package built without a signature (see below) is the plain folder with the double-click scripts. macOS blocks
+  them the first time: right-click, "Open"; on newer versions System Settings, Privacy & Security, "Open Anyway".
+  Transferring the folder by USB stick does not set this block.
 
 ### Windows
 
@@ -50,6 +62,19 @@ Files are in `windows/`.
 ./pack_mac.sh        # builds dist/LCA-Wrench-Mac.zip from the committed state
 ./pack_windows.sh    # builds dist/LCA-Wrench-Windows.zip from the committed state
 ```
+
+Without further settings `pack_mac.sh` builds an unsigned package (the plain folder). For the signed and notarized
+installer app it needs a "Developer ID Application" certificate in the keychain and a notarytool profile, stored once:
+
+```bash
+xcrun notarytool store-credentials <profile> --apple-id <apple-id> --team-id <team-id>   # asks for an app-specific password
+LCA_WRENCH_SIGN_IDENTITY="Developer ID Application: <name> (<team-id>)" LCA_WRENCH_NOTARY_PROFILE=<profile> ./pack_mac.sh
+```
+
+The script signs the app with the hardened runtime, submits it to Apple, waits for the result (a few minutes),
+staples the ticket and zips the app. With only `LCA_WRENCH_SIGN_IDENTITY` it is signed but not notarized, and other
+Macs still block it. The identity and the profile are passed through the environment only; nothing personal is
+stored in the repository.
 
 ### Checksums
 
