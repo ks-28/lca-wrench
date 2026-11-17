@@ -1,0 +1,10 @@
+# premise (future scenarios of ecoinvent, lca_wrench/scenarios.py) in an environment of its own: it needs older numpy,
+# pandas and scipy than LCA Wrench. Brightway on the same versions as the app, so both read and write the projects alike.
+premise==2.5.2
+pyarrow<20
+bw2data==4.7
+bw2calc==2.5.0
+bw2io==0.9.17
+bw2parameters==1.1.0
+bw-processing==1.6
+matrix-utils==0.9

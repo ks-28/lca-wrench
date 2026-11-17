@@ -1,0 +1,16 @@
+# Runtime requirements without checksums: what the installers fall back to when the tested versions
+# (requirements-lock.txt) cannot be installed, e.g. on an older Mac.
+# Brightway itself stays on the tested versions: a newer one (e.g. bw2calc 3, bw2data 4.8) could calculate differently
+# or convert projects when opening them. Only the other packages (numpy, scipy, pandas ...) may differ.
+bw2data==4.7
+bw2calc==2.5.0
+bw2io==0.9.17
+bw2parameters==1.1.0
+bw-processing==1.6
+matrix-utils==0.9
+fastapi>=0.110
+uvicorn[standard]>=0.29
+# BAFU 2026 with EF 3.1 (lca_wrench/bafu2026.py): a fixed commit from GitHub, as an archive (no git needed)
+sentier-brightway @ https://github.com/sentier-dev/sentier-brightway/archive/f48908503f7c2d51dfb3c12a1a75c5c44ebf5558.zip
+# importing ecoinvent as in the Activity Browser (lca_wrench/ecoinvent.py): an ecoinvent account or a local 7z file
+ecoinvent_interface>=3.1

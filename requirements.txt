@@ -1,0 +1,3 @@
+# Runtime requirements (same as pyproject.toml). For exactly the tested versions with checksums use
+# requirements-lock.txt; for development add requirements-dev.txt.
+-r requirements-app.txt

@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "LCA Wrench"
+type: software
+authors:
+  - family-names: "Pfister"
+    given-names: "Stephan"
+    affiliation: "ETH Zurich, Institute of Environmental Engineering"
+  - family-names: "Pfister"
+    given-names: "Kilian"
+version: "0.1.0"
+repository-code: "https://github.com/lca-wrench/lca-wrench"
+license: BSD-3-Clause
+abstract: "LCA Wrench is a local web interface for Brightway 2.5 with its own calculation engine for building product models and calculating life cycle assessment results."
+keywords:
+  - life cycle assessment
+  - LCA
+  - Brightway
+  - Activity Browser
+  - uncertainty analysis
+  - Monte Carlo
+references:
+  - type: article
+    authors:
+      - family-names: "Mutel"
+        given-names: "Chris"
+    title: "Brightway: An open source framework for Life Cycle Assessment"
+    journal: "Journal of Open Source Software"
+    year: 2017
+    volume: 2
+    issue: 12
+    start: 236
+    doi: "10.21105/joss.00236"

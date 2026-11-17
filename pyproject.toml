@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lca-wrench"
+version = "0.1.0"
+description = "A local web UI for Brightway 2.5 with its own calculation engine: model, calculate and analyse life cycle assessments without waiting."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "lca_wrench/static/fonts/OFL.txt"]
+authors = [
+  { name = "Stephan Pfister" },
+  { name = "Kilian Pfister" },
+]
+maintainers = [{ name = "Kilian Pfister" }]
+keywords = ["life cycle assessment", "LCA", "Brightway", "ecoinvent", "environmental impact"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+# Brightway itself is pinned to the tested versions (as in requirements-app.txt): a newer one could calculate
+# differently or convert projects when opening them. requirements-lock.txt pins everything, with checksums.
+dependencies = [
+  "bw2data==4.7",
+  "bw2calc==2.5.0",
+  "bw2io==0.9.17",
+  "bw2parameters==1.1.0",
+  "bw-processing==1.6",
+  "matrix-utils==0.9",
+  "numpy",
+  "scipy",
+  "openpyxl",
+  "xlsxwriter",
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29",
+  "ecoinvent_interface>=3.1",
+  "sentier-brightway @ https://github.com/sentier-dev/sentier-brightway/archive/f48908503f7c2d51dfb3c12a1a75c5c44ebf5558.zip",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6", "playwright>=1.40"]
+
+[project.scripts]
+lca-wrench = "lca_wrench.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/lca-wrench/lca-wrench"
+Issues = "https://github.com/lca-wrench/lca-wrench/issues"
+
+[tool.setuptools]
+packages = ["lca_wrench"]
+
+[tool.setuptools.package-data]
+lca_wrench = ["static/**/*", "data/**/*"]
