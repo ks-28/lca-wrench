@@ -4,10 +4,10 @@ title: "LCA Wrench"
 type: software
 authors:
   - family-names: "Pfister"
+    given-names: "Kilian"
+  - family-names: "Pfister"
     given-names: "Stephan"
     affiliation: "ETH Zurich, Institute of Environmental Engineering"
-  - family-names: "Pfister"
-    given-names: "Kilian"
 version: "0.1.0"
 repository-code: "https://github.com/lca-wrench/lca-wrench"
 license: BSD-3-Clause
