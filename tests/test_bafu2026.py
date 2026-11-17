@@ -84,7 +84,12 @@ def _refined_score(lca) -> float:
     lu = splu(A)
     for _ in range(3):
         x = x + lu.solve(b - A @ x)
-    assert np.linalg.norm(b - A @ x) <= 1e-12 * np.linalg.norm(b)
+    # backward error per row: each residual entry relative to the size of its row, (|A| |x|)_i, or to the demand,
+    # whichever is larger. The matrix has entries up to about 1e10, so measured against |b| = 1 alone the residual
+    # stays around 1e-11 on some platforms although x is as exact as double precision allows.
+    r = np.abs(b - A @ x)
+    scale = abs(A) @ np.abs(x) + np.abs(b).max()
+    assert np.max(r / scale) <= 1e-13
     return float((lca.characterization_matrix @ (lca.biosphere_matrix @ x)).sum())
 
 
