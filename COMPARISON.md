@@ -13,7 +13,7 @@ are two interfaces on top of it. A model built in one opens in the others.
 |---|---|
 | **Brightway 2.5** | A Python library. Everything is possible, all of it by writing code: import, modelling, calculation, analysis, plots. |
 | **Activity Browser 3** | A desktop app that shows nearly all of Brightway with menus and tables, including scenarios, multifunctional data and method editing. |
-| **LCA Wrench** | A local web app for building your own models on a fixed background database, getting results immediately, and explaining why two results differ. |
+| **LCA Wrench** | A local web app for building your own models on a fixed background database, getting results immediately, and explaining why two results differ. Can be run as a server with user accounts (to be set up)|
 
 ## Use cases: which one to pick
 
