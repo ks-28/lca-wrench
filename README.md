@@ -97,7 +97,7 @@ flows without sub-compartment, so emissions into sub-compartments count as zero 
 
 ## Known limits
 
-- Scenarios are available through premise databases (one per year) and a key is needed (can be requested drom premise); there are no scenario difference files (Activity
+- Scenarios are available through premise databases (one per year) and a key is needed (it can be requested from the premise authors); there are no scenario difference files (Activity
   Browser) and no superstructure databases. Monte Carlo and the cross-check do not work while inputs are taken from
   counterparts in another background database.
 - Moving a model to another region swaps suppliers by name only, not consumption mixes or imports; models with

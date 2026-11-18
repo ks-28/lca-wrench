@@ -13,7 +13,7 @@ are two interfaces on top of it. A model built in one opens in the others.
 |---|---|
 | **Brightway 2.5** | A Python library. Everything is possible, all of it by writing code: import, modelling, calculation, analysis, plots. |
 | **Activity Browser 3** | A desktop app that shows nearly all of Brightway with menus and tables, including scenarios, multifunctional data and method editing. |
-| **LCA Wrench** | A local web app for building your own models on a fixed background database, getting results immediately, and explaining why two results differ. Can be run as a server with user accounts (to be set up)|
+| **LCA Wrench** | A local web app for building your own models on a fixed background database, getting results immediately, and explaining why two results differ. A server version with user accounts is planned. |
 
 ## Use cases: which one to pick
 
@@ -34,8 +34,6 @@ are two interfaces on top of it. A model built in one opens in the others.
 | Import ecoinvent, SimaPro CSV, Excel, other formats | ✓ bw2io, all formats | ✓ ecoinvent, Excel and more | ecoinvent, BAFU 2026, premise scenarios and EXIOBASE, into new or existing projects; Excel for own models |
 | Reproducible pipelines, batch runs, papers | ✓ well suited: scripts, notebooks, version control | see its documentation | limited: CSV and Excel export |
 | Teaching, first steps without code | – | ✓ | ✓ guided tour, English and German |
-
-
 
 ## How each one calculates
 
