@@ -26,12 +26,19 @@ The installer sets up its own Python and the packages inside the LCA Wrench fold
 needed, 3 to 5 minutes). The Windows package is less tested than the macOS one. Details:
 [docs/install.md](docs/install.md).
 
-**From source (macOS and Linux).**
+**Which data with which installation.** With the release package, a project with BAFU 2026 (EF 3.1 methods) is
+created in the app under "New project", and ecoinvent can be imported there with your own licence. BAFU 2025 with the
+Ecological Scarcity 2021 methods and the example model, as in the screenshots, needs a Brightway project made from the
+`BAFU-2025-v2` template; the derived climate method (kg CO2-eq) is added only by `setup_daten.py` from the source
+installation, which also creates that project. Completed factors and the list of flows without a factor work in any
+project.
+
+**From source (macOS and Linux; Windows below).**
 
 ```bash
 git clone https://github.com/lca-wrench/lca-wrench.git
 cd lca-wrench
-python3.12 -m venv .venv
+python3.12 -m venv .venv             # Windows: py -3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements-lock.txt
 .venv/bin/python setup_daten.py      # downloads the free BAFU 2025 data (about 62 MB) into a Brightway project
 .venv/bin/python -m lca_wrench       # http://127.0.0.1:8787

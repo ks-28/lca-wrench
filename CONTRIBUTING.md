@@ -8,7 +8,7 @@ are welcome as pull requests against `main`.
 ```bash
 git clone https://github.com/lca-wrench/lca-wrench.git
 cd lca-wrench
-python3.12 -m venv .venv
+python3.12 -m venv .venv             # Windows: py -3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements-lock.txt
 .venv/bin/python -m pip install -r requirements-dev.txt   # pytest, httpx, ruff, playwright (separately: the lock file uses checksums)
 .venv/bin/python setup_daten.py      # free BAFU 2025 data (about 62 MB); the tests need it

@@ -104,7 +104,7 @@ macOS and Linux:
 ```bash
 git clone https://github.com/lca-wrench/lca-wrench.git
 cd lca-wrench
-python3.12 -m venv .venv
+python3.12 -m venv .venv             # Windows: py -3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements-lock.txt
 .venv/bin/python setup_daten.py      # downloads the free BAFU 2025 data (about 62 MB) into a Brightway project
 .venv/bin/python -m lca_wrench       # http://127.0.0.1:8787
