@@ -97,7 +97,7 @@ flows without sub-compartment, so emissions into sub-compartments count as zero 
 
 ## Known limits
 
-- Scenarios are available through premise databases (one per year); there are no scenario difference files (Activity
+- Scenarios are available through premise databases (one per year) and a key is needed (can be requested drom premise); there are no scenario difference files (Activity
   Browser) and no superstructure databases. Monte Carlo and the cross-check do not work while inputs are taken from
   counterparts in another background database.
 - Moving a model to another region swaps suppliers by name only, not consumption mixes or imports; models with
@@ -129,7 +129,7 @@ Pfister, K. and Pfister, S. (2026). LCA Wrench (version 0.1.0). https://github.c
 
 ## Licence
 
-BSD 3-Clause, see [LICENSE](LICENSE). Copyright (c) 2026 Stephan Pfister and Kilian Pfister.
+BSD 3-Clause, see [LICENSE](LICENSE). Copyright (c) 2026 Kilian Pfister and Stephan Pfister.
 
 ## Authors
 
