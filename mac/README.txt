@@ -49,7 +49,8 @@ about as much disk space as the project.
 If something goes wrong: send the file "lca-wrench.log" from this folder. It holds the errors and the version
 of LCA Wrench.
 
-Remove: move the folder "LCA-Wrench" to the Trash. Copies LCA Wrench created are named "… (LCA Wrench)"
+Remove: move the folder "LCA-Wrench" and the app "LCA Wrench" (desktop and Applications in your home folder) to the
+Trash. Copies LCA Wrench created are named "… (LCA Wrench)"
 (older ones "… (Werkbank)" or "… (Workbench)") and can be deleted in the Activity Browser like any project.
 
 
@@ -106,6 +107,7 @@ einige Minuten und braucht etwa so viel Speicherplatz wie das Projekt.
 Wenn etwas nicht klappt: die Datei «lca-wrench.log» in diesem Ordner schicken. Darin stehen die Fehler
 und die Version von LCA Wrench.
 
-Entfernen: den Ordner «LCA-Wrench» in den Papierkorb legen. Kopien, die LCA Wrench angelegt hat, heissen
+Entfernen: den Ordner «LCA-Wrench» und die App «LCA Wrench» (Schreibtisch und «Programme» im Benutzerordner) in den
+Papierkorb legen. Kopien, die LCA Wrench angelegt hat, heissen
 «… (LCA Wrench)» (ältere «… (Werkbank)» oder «… (Workbench)») und lassen sich im Activity Browser wie jedes
 Projekt löschen.

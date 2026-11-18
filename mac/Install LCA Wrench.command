@@ -122,6 +122,9 @@ LAUNCH
   touch "$APP"
 }
 make_app "$DIR" || true
+# also in the user's own Applications folder (~/Applications, no administrator rights), so Spotlight and Launchpad
+# find it like any other app
+mkdir -p "$HOME/Applications" 2>/dev/null && make_app "$HOME/Applications" 2>/dev/null || true
 if make_app "$HOME/Desktop" 2>/dev/null; then
   echo "The app \"$NAME\" is on the desktop (and in this folder): double-click it to start."
 else
@@ -130,4 +133,4 @@ fi
 
 echo
 echo "Done. Start $NAME with the app \"$NAME\" on the desktop, or \"Start LCA Wrench\" in this folder."
-pause
+echo "You can close this window."

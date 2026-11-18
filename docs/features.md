@@ -200,7 +200,7 @@ working copy. Data (names of activities, methods, the example model) is not tran
 `/ui/<version>/` (an identifier from modification time and size of all files), and the page itself is never cached, so
 after an update the browser does not mix old and new JavaScript modules.
 
-## Flows without a characterisation factor
+## Flows without a characterization factor
 
 In Result, Inventory, each inventory flow shows whether the selected method has a factor for it: characterized,
 characterized (flow mapping), characterized (completed) or not characterized. A filter shows only the not characterized

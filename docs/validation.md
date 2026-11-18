@@ -52,7 +52,7 @@ Output of `scripts/validate.py` as run for this release (relative gap = |a − b
   same processed matrices; the small differences come from the solvers (LCA Wrench refines every solution
   iteratively, bw2calc solves once).
 - **Against the independent solver**, gaps of up to about 6e-8 remain whether the amounts are rounded to float32 or
-  not, and they are the same for bw2calc and LCA Wrench. Brightway stores exchange amounts and characterisation
+  not, and they are the same for bw2calc and LCA Wrench. Brightway stores exchange amounts and characterization
   factors in its processed matrices as **float32** (about 7 significant digits); the independent solver reads the
   amounts from SQLite in full precision. With the amounts in full precision (float64) the gap is larger (1.9e-7), which
   shows that it comes from the stored precision, not from the solvers. Results are therefore meaningful to about 6–7

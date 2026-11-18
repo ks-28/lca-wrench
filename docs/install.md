@@ -27,7 +27,8 @@ The Windows package has been tested less than the macOS one.
   minutes are needed. If the tested versions do not fit the computer (for example an older Intel Mac), the installer takes the
   same Brightway versions from `requirements-app.txt` and the newest matching versions of the other packages.
 - **Start LCA Wrench** starts the app on port 8787 and opens the browser. Closing the terminal window stops it.
-- At the end the installer puts an app **LCA Wrench** with the logo on the desktop and into the folder. It is a small
+- At the end the installer puts an app **LCA Wrench** with the logo on the desktop, into `~/Applications` (so
+  Spotlight and Launchpad find it) and into the folder. It is a small
   launcher (`LCA Wrench.app`, icon `mac/AppIcon.icns`) that opens "Start LCA Wrench" of this folder. It is created on the
   computer itself, so macOS does not block it. If the folder is moved, the launcher says so and the installer creates it
   again.
