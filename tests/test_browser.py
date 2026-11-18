@@ -109,19 +109,20 @@ def test_02_example_model_edit_undo(page):
     page.click("[data-act=example-model]")
     expect(page.locator(".kpi .big")).to_be_visible()
     expect(page.locator("#main")).to_contain_text("Fahrt mit dem E-Bike")
-    before = num(page.locator(".kpi .big").first.inner_text())
+    kpi = page.locator(".kpi .big").first
+    before_text = kpi.inner_text()
+    before = num(before_text)
     assert before > 0
     field = page.locator("input[data-ex]").first
     old = float(field.input_value())
     field.fill(str(old * 2))
     field.press("Tab")
     expect(page.locator("#undoBtn")).to_be_visible()
-    page.wait_for_timeout(800)
-    after = num(page.locator(".kpi .big").first.inner_text())
-    assert after != before
+    # wait for the recalculation instead of a fixed time (slow CI runners)
+    expect(kpi).not_to_have_text(before_text, timeout=15000)
     page.click("#undoBtn")
-    page.wait_for_timeout(800)
-    assert num(page.locator(".kpi .big").first.inner_text()) == pytest.approx(before, rel=1e-6)
+    expect(kpi).to_have_text(before_text, timeout=15000)
+    assert num(kpi.inner_text()) == pytest.approx(before, rel=1e-6)
     assert float(page.locator("input[data-ex]").first.input_value()) == pytest.approx(old)
 
 
