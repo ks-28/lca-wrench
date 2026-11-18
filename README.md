@@ -133,7 +133,10 @@ BSD 3-Clause, see [LICENSE](LICENSE). Copyright (c) 2026 Stephan Pfister and Kil
 
 ## Authors
 
-Kilian Pfister and Stephan Pfister (ETH Zurich, Institute of Environmental Engineering). Maintainer: Kilian Pfister
+- Kilian Pfister
+- Stephan Pfister (ETH Zurich, Institute of Environmental Engineering)
+
+Maintainer: Kilian Pfister
 ([@misterpfister8](https://github.com/misterpfister8)). Questions and bug reports through
 [GitHub Issues](https://github.com/lca-wrench/lca-wrench/issues).
 
