@@ -35,8 +35,7 @@ are two interfaces on top of it. A model built in one opens in the others.
 | Reproducible pipelines, batch runs, papers | ✓ well suited: scripts, notebooks, version control | see its documentation | limited: CSV and Excel export |
 | Teaching, first steps without code | – | ✓ | ✓ guided tour, English and German |
 
-**Rule of thumb:** model and explain in LCA Wrench, use the Activity Browser for scenarios, multifunctional data and
-methods, and Brightway in Python for anything automated or new.
+
 
 ## How each one calculates
 
