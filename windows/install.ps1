@@ -25,6 +25,16 @@ $env:UV_CACHE_DIR = Join-Path $Tools 'cache'
 $env:UV_PYTHON_PREFERENCE = 'only-managed'              # never another Python of this PC (conda, python.org, Store)
 $env:UV_NO_CONFIG = '1'                                 # ignore uv settings of this user
 
+# Runs only from the release package (pack_windows.sh puts this script next to lca_wrench and the requirements).
+# Started from a clone or from "Source code (zip)", nothing fits: stop before anything is written here.
+if (-not (Test-Path (Join-Path $Dir 'requirements-lock.txt'))) {
+    Write-Host 'ERROR: this folder is not the LCA Wrench installation package (it looks like the source code).' -ForegroundColor Red
+    Write-Host 'Download LCA-Wrench-Windows.zip from the release page, unzip it and run "Install LCA Wrench" there:'
+    Write-Host '  https://github.com/lca-wrench/lca-wrench/releases/latest'
+    Write-Host '"Source code (zip)" on that page is not the installer. To run from source, see "From source" in README.md.'
+    exit 1
+}
+
 function Fail($text) {
     Write-Host ''
     Write-Host "ERROR: $text" -ForegroundColor Red
