@@ -218,12 +218,18 @@ def list_processes(name: str) -> list[dict]:
 
 def create_process(database: str, name: str, unit: str = "unit", location: str = "CH",
                    product: str | None = None, comment: str = "") -> str:
-    _require_model_db(database)
     name = (name or "").strip()
+    unit = (unit or "").strip()
+    location = (location or "").strip()
     if not name:
         raise ValueError(_("Bitte einen Namen eingeben."))
+    if not unit:
+        raise ValueError(_("Bitte eine Einheit wählen."))
+    if not location:
+        raise ValueError(_("Bitte einen Ort / eine Region eingeben."))
+    _require_model_db(database)
     act = bd.Database(database).new_activity(
-        code=uuid.uuid4().hex, name=name, unit=unit or "unit", location=location or "GLO",
+        code=uuid.uuid4().hex, name=name, unit=unit, location=location,
         type="processwithreferenceproduct", comment=comment or "",
         **{"reference product": (product or name).strip()})
     act.save()
@@ -764,22 +770,25 @@ def _apply_undo(u: dict) -> dict[int, int]:
 
 # ---------- detail for the editor ----------
 
-def process_detail(node_id: int | str, method: tuple) -> dict:
-    """Process with all exchanges and each one's share of the impact (live, from the engine)."""
+def process_detail(node_id: int | str, method: tuple | None) -> dict:
+    """Process with all exchanges and each one's share of the impact (live, from the engine).
+
+    method=None → open the sheet without LCIA scores (no method selected / none in project).
+    """
     act = bd.get_node(id=int(node_id))
     S = system_for(act.id) if roles().get(act["database"]) == "background" else system()
     alone = act["database"] if S is not system() else None  # calculated on its own database (system_for)
     editable = act["database"] in writable_databases()
     errors = S.fg.error_texts() if editable else []
     u = None
-    if not errors:
+    if method is not None and not errors:
         try:
             u = S.unit_scores(method)
         except engine.ModelError as e:
             errors.append(str(e))
     col = S.col.get(act.id)
     prod = float(S.production[col]) if col is not None else 1.0
-    cvec = S.cvec(method) if u is not None else None
+    cvec = S.cvec(method) if (u is not None and method is not None) else None
     excs = []
     for e in act.exchanges():
         try:

@@ -99,3 +99,36 @@ def test_model_editing_round_trip_with_64bit_ids(client):
         assert sheet["score"] == pytest.approx(2 * el_score, rel=1e-6)
     finally:
         client.post("/api/models/db/delete", json={"name": name})
+
+
+def test_create_process_requires_unit_and_location(client):
+    name = "zz API Require Loc Unit"
+    try:
+        assert client.post("/api/models/db", json={"name": name}).status_code == 200
+        assert client.post("/api/models/process", json={
+            "database": name, "name": "X", "unit": "", "location": "CH",
+        }).status_code == 400
+        assert client.post("/api/models/process", json={
+            "database": name, "name": "X", "unit": "unit", "location": "  ",
+        }).status_code == 400
+        r = client.post("/api/models/process", json={
+            "database": name, "name": "X", "unit": "kilogram", "location": "DE",
+        })
+        assert r.status_code == 200 and r.json()["id"]
+    finally:
+        client.post("/api/models/db/delete", json={"name": name})
+
+
+def test_activity_sheet_opens_without_method(client):
+    """Model editor must open after create even when no LCIA method is selected/available."""
+    name = "zz API No Method Sheet"
+    try:
+        assert client.post("/api/models/db", json={"name": name}).status_code == 200
+        pid = client.post("/api/models/process", json={
+            "database": name, "name": "Rahmen", "unit": "kilogram", "location": "CH",
+        }).json()["id"]
+        sheet = client.post("/api/activity", json={"id": pid}).json()
+        assert sheet["id"] == pid and sheet["edit_mode"] == "model"
+        assert sheet["name"] == "Rahmen" and sheet["score"] is None
+    finally:
+        client.post("/api/models/db/delete", json={"name": name})
