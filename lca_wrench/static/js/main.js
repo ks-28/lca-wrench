@@ -1,7 +1,8 @@
 // LCA Wrench UI: plain JS modules, talks to the local FastAPI service.
 'use strict';
 import { S, $, esc, nf, mKey, methodInfo, methodLabel, familyLabel, api, toast, guard, renderBusy, icon, views, loadPrefs, savePref, csvDownload, download, isModelDb, langHeader, t, LANG } from './core.js';
-import { hasExactLocMatch, renderPlanetaRail, syncThemeToggle, applyTheme } from './planeta_overlay.js';import { setLang } from './i18n.js';
+import { hasExactLocMatch, renderPlanetaRail, syncThemeToggle, applyTheme } from './planeta_overlay.js';
+import { setLang } from './i18n.js';
 import { vStart } from './views/start.js';
 import { vDaten } from './views/daten.js';
 import { vProxy } from './views/proxy.js';
@@ -299,7 +300,8 @@ const A = {
   async view(k) { await go(k); },
   explain() { S.explain = !S.explain; savePref('wb-explain', S.explain ? '1' : '0'); render(); },
   'set-theme'(k) { if (k === 'light' || k === 'dark') applyTheme(k); },
-  'toggle-theme'() { applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },  async lang() {
+  'toggle-theme'() { applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
+  async lang() {
     setLang(LANG === 'en' ? 'de' : 'en');
     render();  // the UI texts at once; then what the server writes (history, model errors) in the new language
     await loadState(); try { await loadView(); } catch (_) { /* the view shows its own message */ }
