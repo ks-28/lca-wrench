@@ -8,6 +8,8 @@ export const S = {
   st: null, method: null, view: 'start', explain: true, busy: 0,
   // Daten
   q: '', loc: '', dbf: '', unit: '', sopts: null, results: [], sel: null, act: null, showAllTech: false, showAllBio: false,
+  // Proxy state owned by Planet A overlay (planeta_overlay.js / views/proxy.js)
+  proxy: { q: '', loc: '', results: [], sel: null, act: null, error: null, loading: false, summary: null, ui_notices: [], duration_ms: null },
   // Modellieren
   mdb: null, mprocs: [], msel: null, mact: null, newProc: false, newDb: false, prevScore: null, move: null,
   // Rechnen

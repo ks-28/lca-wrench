@@ -1,9 +1,11 @@
 // LCA Wrench UI: plain JS modules, talks to the local FastAPI service.
 'use strict';
 import { S, $, esc, nf, mKey, methodInfo, methodLabel, familyLabel, api, toast, guard, renderBusy, icon, views, loadPrefs, savePref, csvDownload, download, isModelDb, langHeader, t, LANG } from './core.js';
+import { hasExactLocMatch, renderPlanetaRail } from './planeta_overlay.js';
 import { setLang } from './i18n.js';
 import { vStart } from './views/start.js';
 import { vDaten } from './views/daten.js';
+import { vProxy } from './views/proxy.js';
 import { uncEditType, pedigreeHint } from './sheet.js';
 import { vModell } from './views/modell.js';
 import { vRechnen } from './views/rechnen.js';
@@ -105,8 +107,9 @@ async function sheetFor(id) {
   catch (e) { toast(e.message); return null; }
 }
 async function loadView() {
-  if (['daten', 'modell', 'rechnen', 'ergebnis'].includes(S.view) && !S.sopts && S.st.databases.length) S.sopts = await api('/api/search/options');
+  if (['daten', 'proxy', 'modell', 'rechnen', 'ergebnis'].includes(S.view) && !S.sopts && S.st.databases.length) S.sopts = await api('/api/search/options');
   if (S.view === 'daten' && S.sel) { S.act = await sheetFor(S.sel); if (!S.act) S.sel = null; }
+  if (S.view === 'proxy' && S.proxy.sel) { S.proxy.act = await sheetFor(S.proxy.sel); if (!S.proxy.act) S.proxy.sel = null; }
   if (S.view === 'modell') {
     S.mprocs = S.mdb ? await api(`/api/models/processes?db=${encodeURIComponent(S.mdb)}`) : [];
     if (S.msel && !S.mprocs.some(p => p.id === S.msel)) { S.msel = null; S.mact = null; }
@@ -222,7 +225,8 @@ function renderTop() {
   $('undoBtn').hidden = !j.length;
   $('undoBtn').title = j.length ? t('Rückgängig: {label} (⌘Z / Ctrl+Z)', { label: j[0].label }) : '';
   const eb = $('explainBtn'); eb.setAttribute('aria-pressed', S.explain); eb.textContent = S.explain ? t('Erklärungen an') : t('Erklärungen aus');
-  $('rail').innerHTML = views().map(([k, l]) => `<button class="nav" data-act="view" data-k="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${icon(k)}<span>${l}</span></button>`).join('');
+  // Planet A: separator + Proxy at end (planeta_overlay.js) — stock views() stays upstream-clean
+  $('rail').innerHTML = renderPlanetaRail(views(), icon, S.view);
 }
 function projectTag(p) {
   return p.copy ? ' ' + t('(Arbeitskopie)') : p.testcopy ? ' ' + t('(Testkopie)') : p.legacy ? ' ' + t('(Activity Browser 2, nur als Kopie)')
@@ -235,7 +239,7 @@ function render() {
   const active = document.activeElement;
   const typing = active && active.id && $('main').contains(active) && /^(text|search)$/.test(active.type)
     ? { id: active.id, value: active.value, start: active.selectionStart, end: active.selectionEnd } : null;
-  $('main').innerHTML = ({ start: vStart, daten: vDaten, modell: vModell, parameter: vParameter, rechnen: vRechnen, ergebnis: vErgebnis, vergleich: vVergleich })[S.view]();
+  $('main').innerHTML = ({ start: vStart, daten: vDaten, proxy: vProxy, modell: vModell, parameter: vParameter, rechnen: vRechnen, ergebnis: vErgebnis, vergleich: vVergleich })[S.view]();
   const el = typing && $(typing.id);
   if (el) { el.value = typing.value; el.focus(); el.setSelectionRange(typing.start, typing.end); }
   // the Sankey grows to the left; start at the product on the right
@@ -303,6 +307,34 @@ const A = {
   async tour() { if (!S.st.project || S.st.load_error) { toast(t('Bitte zuerst oben ein Projekt wählen.')); return; } await startTour(tourHooks); },
   async open(k, el) { await openNode(k, el.dataset.db); },
   async 'open-here'(k) { S.sel = k; S.showAllTech = S.showAllBio = false; S.act = await sheetFor(k); render(); },
+  async 'open-proxy'(k) { S.proxy.sel = k; S.showAllTech = S.showAllBio = false; S.proxy.act = await sheetFor(k); render(); },
+  async 'goto-proxy'() {
+    S.proxy.q = S.q; S.proxy.loc = S.loc; S.proxy.sel = null; S.proxy.act = null; S.proxy.error = null;
+    S.view = 'proxy'; render();
+    await A['run-proxy-search']();
+  },
+  async 'run-proxy-search'() {
+    S.proxy.loading = true; S.proxy.error = null; S.proxy.results = []; S.proxy.sel = null; S.proxy.act = null;
+    S.proxy.summary = null; S.proxy.ui_notices = [];
+    render();
+    toast(t('Proxy-Suche gestartet — oft 10–40 s (Embeddings).'));
+    try {
+      const out = await api(`/api/search/proxy?q=${encodeURIComponent(S.proxy.q)}&loc=${encodeURIComponent(S.proxy.loc)}`);
+      if (out && out.ok === false) {
+        S.proxy.results = [];
+        S.proxy.error = out.detail || out.error || t('Proxy-Suche nicht verfügbar.');
+      } else {
+        S.proxy.results = out.results || [];
+        S.proxy.summary = out.summary || null;
+        S.proxy.ui_notices = out.ui_notices || [];
+        S.proxy.duration_ms = out.duration_ms ?? null;
+        S.proxy.error = null;
+      }
+    } finally {
+      S.proxy.loading = false;
+      render(); $('pq')?.focus();
+    }
+  },
   async 'open-proc'(k) { S.msel = k; S.uncFor = null; S.prevScore = null; S.showAllTech = S.showAllBio = false; S.mact = await sheetFor(k); render(); },
   async 'open-db'(k) { S.mdb = k; S.msel = null; S.mact = null; await go('modell'); },
   'all-tech'() { S.showAllTech = !S.showAllTech; render(); },
@@ -711,7 +743,15 @@ document.addEventListener('submit', ev => {
     if (f.id === 'moveForm') await A['move-preview']();
     else if (f.id === 'searchForm') {
       S.q = $('q').value; S.loc = $('loc').value.trim(); S.dbf = $('dbf').value; S.unit = $('unit').value;
-      S.results = await api(`/api/search?q=${encodeURIComponent(S.q)}&loc=${encodeURIComponent(S.loc)}&db=${encodeURIComponent(S.dbf)}&unit=${encodeURIComponent(S.unit)}`); render(); $('q').focus();
+      S.results = await api(`/api/search?q=${encodeURIComponent(S.q)}&loc=${encodeURIComponent(S.loc)}&db=${encodeURIComponent(S.dbf)}&unit=${encodeURIComponent(S.unit)}`);
+      render(); $('q').focus();
+      // Prefer Wrench search; on no exact loc match → hand off to Proxy tab (lists stay separate).
+      if (!hasExactLocMatch(S.results, S.loc)) {
+        toast(t('Kein exakter Orts-Treffer in der Wrench-Suche. Proxy-Suche öffnen?'), { act: 'goto-proxy', label: t('Proxy öffnen') });
+      }
+    } else if (f.id === 'proxySearchForm') {
+      S.proxy.q = $('pq').value; S.proxy.loc = ($('ploc')?.value || '').trim();
+      await A['run-proxy-search']();
     } else if (f.id === 'pkForm') {
       const p = S.picker; p.q = $('pkQ').value; p.loc = ($('pkLoc')?.value || '').trim(); p.amount = parseFloat($('pkAmt')?.value ?? '1') || 1;
       p.unit = $('pkUnit')?.value || ''; p.comp = $('pkComp')?.value || '';

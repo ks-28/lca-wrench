@@ -520,6 +520,92 @@ def search_options() -> dict:
             "compartments": [c for c in COMPARTMENTS if c in comps]}
 
 
+def proxy_search(q: str, location: str | None = None, limit: int = 20, context: str | None = None) -> dict:
+    """Planet A hybrid / geo-proxy search (separate from keyword ``search``).
+
+    Prefer in-process import; if Wrench venv lacks deps (e.g. grpc), shell out to
+    ``PLANETA_PYTHON -m lca.wrench_proxy.cli_proxy_search`` (see wrench_serve_planeta.sh).
+    """
+    import json
+    import os
+    import subprocess
+    from pathlib import Path
+
+    try:
+        from lca.wrench_proxy.search import proxy_search_for_wrench
+
+        return proxy_search_for_wrench(
+            q or "", location=location or "", limit=limit, context=context or ""
+        )
+    except ImportError:
+        pass
+
+    py = os.environ.get("PLANETA_PYTHON", "").strip()
+    root = os.environ.get("PLANETA_ROOT", "").strip()
+    if not py and root:
+        cand = Path(root) / ".venv" / "bin" / "python"
+        if cand.is_file():
+            py = str(cand)
+    if not py:
+        return {
+            "ok": False,
+            "error": "planeta_proxy_unavailable",
+            "detail": "Import failed and PLANETA_PYTHON/PLANETA_ROOT unset",
+            "results": [],
+            "unresolved": [],
+            "hint": "export PLANETA_ROOT=… PLANETA_PYTHON=$PLANETA_ROOT/.venv/bin/python",
+        }
+    env = os.environ.copy()
+    if root:
+        env["PYTHONPATH"] = root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        data = Path(root) / "data"
+        # Prefer host data paths over Docker /app/* baked into the parent env.
+        env["CANONICAL_TREE_PATH"] = str(data / "process_tree.json")
+        env["EMBEDDING_INDEX_PATH"] = str(data / "ecoinvent_embeddings.json")
+        env["LCA_MANIFEST_PATH"] = str(data / "lca_manifest.json")
+        env["LOCAL_AVAILABILITY_PATH"] = str(data / "local_availability.json")
+        env["BRIGHTWAY2_DIR"] = env.get("BRIGHTWAY2_DIR") or str(data / "brightway")
+        env["BRIGHTWAY_DIR"] = env.get("BRIGHTWAY_DIR") or env["BRIGHTWAY2_DIR"]
+        for k in ("LLM_BASE_URL", "EMBEDDING_BASE_URL"):
+            if "host.docker.internal" in (env.get(k) or ""):
+                env[k] = "http://127.0.0.1:11434/v1"
+    cmd = [
+        py,
+        "-m",
+        "lca.wrench_proxy.cli_proxy_search",
+        "--q",
+        q or "",
+        "--loc",
+        location or "",
+        "--context",
+        context or "",
+        "--limit",
+        str(int(limit)),
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=180)
+    except Exception as e:
+        return {"ok": False, "error": "planeta_proxy_subprocess", "detail": str(e), "results": [], "unresolved": []}
+    if proc.returncode != 0 and not (proc.stdout or "").strip():
+        return {
+            "ok": False,
+            "error": "planeta_proxy_subprocess",
+            "detail": (proc.stderr or proc.stdout or "")[:500],
+            "results": [],
+            "unresolved": [],
+        }
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": "planeta_proxy_bad_json",
+            "detail": f"{e}: {(proc.stdout or '')[:300]}",
+            "results": [],
+            "unresolved": [],
+        }
+
+
 def search(q: str, location: str | None = None, limit: int = 60, database: str | None = None,
            kind: str = "process", unit: str | None = None, compartment: str | None = None) -> list[dict]:
     """Search processes (kind='process') or elementary flows (kind='flow').
