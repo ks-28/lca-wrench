@@ -36,8 +36,8 @@ export function vModell() {
   const newDb = S.newDb ? `<form id="newDbForm" class="miniform"><label class="f">${t('Name des Modells')}<input type="text" id="newDbName" required maxlength="80" placeholder="${t('z.B. Gartenstuhl')}"></label><div class="row"><button class="btn primary" type="submit">${t('Anlegen')}</button><button class="btn" type="button" data-act="new-db-cancel">${t('Abbrechen')}</button></div></form>` : '';
   const newProc = S.newProc ? `<form id="newProcForm" class="miniform">
       <label class="f">${t('Name')}<input type="text" id="npName" required maxlength="160" placeholder="${t('z.B. Rahmen, Aluminium')}"></label>
-      <div class="row"><label class="f">${t('Einheit')}<select id="npUnit">${unitChoices().map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
-      <label class="f">${t('Ort')}<input type="text" id="npLoc" value="CH" maxlength="40" style="width:80px"></label></div>
+      <div class="row"><label class="f">${t('Einheit')}<select id="npUnit" required><option value="" disabled selected>${t('Bitte wählen')}</option>${unitChoices().map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+      <label class="f">${t('Ort')}<input type="text" id="npLoc" list="npLocList" required maxlength="40" style="width:80px" placeholder="${t('Ort, z.B. CH oder Germany')}" autocomplete="off">${locList('npLocList')}</label></div>
       <label class="f">${t('Beschreibung')}<textarea id="npDesc" rows="3" placeholder="${t('Was der Prozess umfasst, Quellen, Annahmen')}"></textarea></label>
       <div class="row"><button class="btn primary" type="submit">${t('Anlegen')}</button><button class="btn" type="button" data-act="new-proc-cancel">${t('Abbrechen')}</button></div></form>` : '';
   const procs = S.mprocs.length ? S.mprocs.map(p => `<button class="res" data-act="open-proc" data-k="${p.id}" aria-current="${p.id === S.msel}"><span>${esc(p.name)}</span><span class="meta">${esc(p.location)} · ${esc(p.unit)}</span></button>`).join('')

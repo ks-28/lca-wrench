@@ -1,9 +1,11 @@
 // LCA Wrench UI: plain JS modules, talks to the local FastAPI service.
 'use strict';
 import { S, $, esc, nf, mKey, methodInfo, methodLabel, familyLabel, api, toast, guard, renderBusy, icon, views, loadPrefs, savePref, csvDownload, download, isModelDb, langHeader, t, LANG } from './core.js';
+import { hasExactLocMatch, renderPlanetaRail, syncThemeToggle, applyTheme } from './planeta_overlay.js';
 import { setLang } from './i18n.js';
 import { vStart } from './views/start.js';
 import { vDaten } from './views/daten.js';
+import { vProxy } from './views/proxy.js';
 import { uncEditType, pedigreeHint } from './sheet.js';
 import { vModell } from './views/modell.js';
 import { vRechnen } from './views/rechnen.js';
@@ -105,8 +107,9 @@ async function sheetFor(id) {
   catch (e) { toast(e.message); return null; }
 }
 async function loadView() {
-  if (['daten', 'modell', 'rechnen', 'ergebnis'].includes(S.view) && !S.sopts && S.st.databases.length) S.sopts = await api('/api/search/options');
+  if (['daten', 'proxy', 'modell', 'rechnen', 'ergebnis'].includes(S.view) && !S.sopts && S.st.databases.length) S.sopts = await api('/api/search/options');
   if (S.view === 'daten' && S.sel) { S.act = await sheetFor(S.sel); if (!S.act) S.sel = null; }
+  if (S.view === 'proxy' && S.proxy.sel) { S.proxy.act = await sheetFor(S.proxy.sel); if (!S.proxy.act) S.proxy.sel = null; }
   if (S.view === 'modell') {
     S.mprocs = S.mdb ? await api(`/api/models/processes?db=${encodeURIComponent(S.mdb)}`) : [];
     if (S.msel && !S.mprocs.some(p => p.id === S.msel)) { S.msel = null; S.mact = null; }
@@ -222,7 +225,9 @@ function renderTop() {
   $('undoBtn').hidden = !j.length;
   $('undoBtn').title = j.length ? t('Rückgängig: {label} (⌘Z / Ctrl+Z)', { label: j[0].label }) : '';
   const eb = $('explainBtn'); eb.setAttribute('aria-pressed', S.explain); eb.textContent = S.explain ? t('Erklärungen an') : t('Erklärungen aus');
-  $('rail').innerHTML = views().map(([k, l]) => `<button class="nav" data-act="view" data-k="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${icon(k)}<span>${l}</span></button>`).join('');
+  // Planet A: separator + Proxy at end (planeta_overlay.js) — stock views() stays upstream-clean
+  $('rail').innerHTML = renderPlanetaRail(views(), icon, S.view);
+  syncThemeToggle();
 }
 function projectTag(p) {
   return p.copy ? ' ' + t('(Arbeitskopie)') : p.testcopy ? ' ' + t('(Testkopie)') : p.legacy ? ' ' + t('(Activity Browser 2, nur als Kopie)')
@@ -235,7 +240,7 @@ function render() {
   const active = document.activeElement;
   const typing = active && active.id && $('main').contains(active) && /^(text|search)$/.test(active.type)
     ? { id: active.id, value: active.value, start: active.selectionStart, end: active.selectionEnd } : null;
-  $('main').innerHTML = ({ start: vStart, daten: vDaten, modell: vModell, parameter: vParameter, rechnen: vRechnen, ergebnis: vErgebnis, vergleich: vVergleich })[S.view]();
+  $('main').innerHTML = ({ start: vStart, daten: vDaten, proxy: vProxy, modell: vModell, parameter: vParameter, rechnen: vRechnen, ergebnis: vErgebnis, vergleich: vVergleich })[S.view]();
   const el = typing && $(typing.id);
   if (el) { el.value = typing.value; el.focus(); el.setSelectionRange(typing.start, typing.end); }
   // the Sankey grows to the left; start at the product on the right
@@ -294,6 +299,8 @@ async function cwChoose(choice) {
 const A = {
   async view(k) { await go(k); },
   explain() { S.explain = !S.explain; savePref('wb-explain', S.explain ? '1' : '0'); render(); },
+  'set-theme'(k) { if (k === 'light' || k === 'dark') applyTheme(k); },
+  'toggle-theme'() { applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
   async lang() {
     setLang(LANG === 'en' ? 'de' : 'en');
     render();  // the UI texts at once; then what the server writes (history, model errors) in the new language
@@ -303,6 +310,88 @@ const A = {
   async tour() { if (!S.st.project || S.st.load_error) { toast(t('Bitte zuerst oben ein Projekt wählen.')); return; } await startTour(tourHooks); },
   async open(k, el) { await openNode(k, el.dataset.db); },
   async 'open-here'(k) { S.sel = k; S.showAllTech = S.showAllBio = false; S.act = await sheetFor(k); render(); },
+  async 'open-proxy'(k) { S.proxy.sel = k; S.showAllTech = S.showAllBio = false; S.proxy.act = await sheetFor(k); render(); },
+  async 'goto-proxy'() {
+    S.proxy.q = S.q; S.proxy.loc = S.loc; S.proxy.sel = null; S.proxy.act = null; S.proxy.error = null;
+    S.view = 'proxy'; render();
+    await A['run-proxy-search']();
+  },
+  async 'run-proxy-search'() {
+    const deep = !!S.proxy.deep;
+    S.proxy.loading = true; S.proxy.error = null; S.proxy.results = []; S.proxy.related_results = [];
+    S.proxy.sel = null; S.proxy.act = null;
+    S.proxy.summary = null; S.proxy.ui_notices = []; S.proxy.deep_used = false;
+    S.proxy.loadStarted = Date.now();
+    S.proxy.loadExpectMs = deep ? 180000 : 35000;
+    if (S.proxy._progressTick) { clearInterval(S.proxy._progressTick); S.proxy._progressTick = null; }
+    render();
+    // Lightweight DOM tick — avoid full re-render (keeps form mounted)
+    S.proxy._progressTick = setInterval(() => {
+      if (!S.proxy.loading) { clearInterval(S.proxy._progressTick); S.proxy._progressTick = null; return; }
+      const elapsed = Math.max(0, Date.now() - S.proxy.loadStarted);
+      const expect = S.proxy.loadExpectMs || 35000;
+      const pct = Math.min(92, Math.round((1 - Math.exp(-elapsed / expect)) * 100));
+      const left = Math.max(0, Math.round((expect - elapsed) / 1000));
+      const elapsedSec = Math.round(elapsed / 1000);
+      const fill = $('proxyProgressFill');
+      const eta = $('proxyProgressEta');
+      if (fill) fill.style.width = `${pct}%`;
+      if (eta) {
+        eta.textContent = left > 0
+          ? t('ca. {n} s verbleibend · {e} s vergangen', { n: left, e: elapsedSec })
+          : t('noch etwas länger · {e} s vergangen', { e: elapsedSec });
+      }
+    }, 400);
+    toast(deep
+      ? t('Deep Search gestartet — oft mehrere Minuten (LLM-Baum).')
+      : t('Proxy-Suche gestartet — oft 10–40 s (Embeddings).'));
+    try {
+      // POST: long free-text must not go in the query string (browser "Failed to fetch")
+      const out = await api('/api/search/proxy', {
+        q: S.proxy.q || '',
+        loc: S.proxy.loc || '',
+        limit: 20,
+        deep,
+      });
+      if (out && out.ok === false) {
+        S.proxy.results = [];
+        S.proxy.related_results = [];
+        S.proxy.error = out.detail || out.error || t('Proxy-Suche nicht verfügbar.');
+      } else {
+        S.proxy.results = out.results || [];
+        S.proxy.related_results = out.related_results || [];
+        S.proxy.summary = out.summary || null;
+        S.proxy.ui_notices = out.ui_notices || [];
+        S.proxy.duration_ms = out.duration_ms ?? null;
+        S.proxy.deep_used = !!(out.deep_search_used || deep);
+        S.proxy.error = null;
+        // Show resolved code in the field after search (India/Indai → IN)
+        if (out.resolved_location) S.proxy.loc = out.resolved_location;
+      }
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      S.proxy.results = [];
+      S.proxy.related_results = [];
+      S.proxy.error = /Failed to fetch|NetworkError|Load failed|fetch/i.test(msg)
+        ? t('Server nicht erreichbar (Wrench down oder Verbindung abgebrochen). Neu starten: scripts/wrench_serve_planeta.sh')
+        : msg;
+    } finally {
+      if (S.proxy._progressTick) { clearInterval(S.proxy._progressTick); S.proxy._progressTick = null; }
+      S.proxy.deep = false; // next normal search is fast again unless user clicks Deep
+      S.proxy.loading = false;
+      S.proxy.searched = true; // unlock Deep CTA + demote Proxy button
+      render(); $('pq')?.focus();
+    }
+  },
+  async 'proxy-deep-search'() {
+    // Sync fields first — Deep sits outside submit path
+    if ($('pq')) S.proxy.q = $('pq').value;
+    if ($('ploc')) S.proxy.loc = ($('ploc').value || '').trim();
+    if (!(S.proxy.q || '').trim()) { toast(t('Zuerst einen Suchbegriff eingeben.')); return; }
+    if (!S.proxy.searched) return; // Deep only after a finished Proxy run
+    S.proxy.deep = true;
+    await A['run-proxy-search']();
+  },
   async 'open-proc'(k) { S.msel = k; S.uncFor = null; S.prevScore = null; S.showAllTech = S.showAllBio = false; S.mact = await sheetFor(k); render(); },
   async 'open-db'(k) { S.mdb = k; S.msel = null; S.mact = null; await go('modell'); },
   'all-tech'() { S.showAllTech = !S.showAllTech; render(); },
@@ -711,7 +800,15 @@ document.addEventListener('submit', ev => {
     if (f.id === 'moveForm') await A['move-preview']();
     else if (f.id === 'searchForm') {
       S.q = $('q').value; S.loc = $('loc').value.trim(); S.dbf = $('dbf').value; S.unit = $('unit').value;
-      S.results = await api(`/api/search?q=${encodeURIComponent(S.q)}&loc=${encodeURIComponent(S.loc)}&db=${encodeURIComponent(S.dbf)}&unit=${encodeURIComponent(S.unit)}`); render(); $('q').focus();
+      S.results = await api(`/api/search?q=${encodeURIComponent(S.q)}&loc=${encodeURIComponent(S.loc)}&db=${encodeURIComponent(S.dbf)}&unit=${encodeURIComponent(S.unit)}`);
+      render(); $('q').focus();
+      // Prefer Wrench search; on no exact loc match → hand off to Proxy tab (lists stay separate).
+      if (!hasExactLocMatch(S.results, S.loc)) {
+        toast(t('Kein exakter Orts-Treffer in der Wrench-Suche. Proxy-Suche öffnen?'), { act: 'goto-proxy', label: t('Proxy öffnen') });
+      }
+    } else if (f.id === 'proxySearchForm') {
+      S.proxy.q = $('pq').value; S.proxy.loc = ($('ploc')?.value || '').trim();
+      await A['run-proxy-search']();
     } else if (f.id === 'pkForm') {
       const p = S.picker; p.q = $('pkQ').value; p.loc = ($('pkLoc')?.value || '').trim(); p.amount = parseFloat($('pkAmt')?.value ?? '1') || 1;
       p.unit = $('pkUnit')?.value || ''; p.comp = $('pkComp')?.value || '';
@@ -721,7 +818,13 @@ document.addEventListener('submit', ev => {
       await loadState(await api('/api/models/db', { name })); S.newDb = false; S.mdb = name; S.msel = null; S.mact = null; await loadView(); render();
       toast(t('Modell «{name}» angelegt. Jetzt den ersten Prozess anlegen.', { name }));
     } else if (f.id === 'newProcForm') {
-      const r = await api('/api/models/process', { database: S.mdb, name: $('npName').value.trim(), unit: $('npUnit').value, location: $('npLoc').value.trim() || 'GLO', comment: ($('npDesc')?.value || '').trim() });
+      const name = $('npName').value.trim();
+      const unit = ($('npUnit').value || '').trim();
+      const location = ($('npLoc').value || '').trim();
+      if (!name) { toast(t('Bitte einen Namen eingeben.')); return; }
+      if (!unit) { toast(t('Bitte eine Einheit wählen.')); return; }
+      if (!location) { toast(t('Bitte einen Ort / eine Region eingeben.')); return; }
+      const r = await api('/api/models/process', { database: S.mdb, name, unit, location, comment: ($('npDesc')?.value || '').trim() });
       S.newProc = false; await loadState(); S.msel = r.id; S.prevScore = null; await loadView(); render();
       toast(t('Prozess angelegt. Füge jetzt Inputs hinzu.'));
     } else if (f.id === 'newSetupForm') {
@@ -871,6 +974,8 @@ let invT;
 document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.id === 'invQ') { clearTimeout(invT); invT = setTimeout(() => { S.invQ = el.value; render(); }, 160); }
+  else if (el.id === 'pq') { S.proxy.q = el.value; }
+  else if (el.id === 'ploc') { S.proxy.loc = (el.value || '').trim(); }
   else if (el.dataset.np && S.newp && el.type !== 'radio' && el.type !== 'checkbox') S.newp[el.dataset.np] = el.value;
   else if (el.id === 'mpQ') { S.mpicker.q = el.value; const pos = el.selectionStart; renderDialog(); const box = $('mpQ'); box.focus(); box.setSelectionRange(pos, pos); }
   else if (el.dataset.ped || el.id === 'uncBasic') { const h = $('pedHint'); if (h) h.textContent = pedigreeHint(); }
@@ -883,6 +988,7 @@ $('dlg').addEventListener('close', () => { S.picker = S.mpicker = S.chooser = S.
 $('dlg').addEventListener('cancel', ev => { if (S.confirm?.running || (S.newp?.job?.state === 'läuft' && !['premise', 'premise-setup', 'exiobase'].includes(S.newp.job.source))) ev.preventDefault(); });
 
 loadPrefs();
+syncThemeToggle();
 renderBusy();
 window.addEventListener('resize', positionTour);
 window.addEventListener('scroll', positionTour, { passive: true });
@@ -892,18 +998,40 @@ const loadStart = Date.now();
 const loadTick = setInterval(() => { const el = $('loadSecs'); if (el) el.textContent = `${Math.round((Date.now() - loadStart) / 1000)} s`; else clearInterval(loadTick); }, 1000);
 guard(async () => { await resumeImport(); await loadState(); clearInterval(loadTick); render(); if (S.st.project && !S.st.load_error && shouldAutoStart()) await startTour(tourHooks); });
 
-// Changes from outside (e.g. Activity Browser): the server compares the project files, we reload when it saw one
+// Changes from outside (Activity Browser) OR agent MCP writes (#248 mutations / agent_busy)
+function syncAgentHold(busy) {
+  const el = $('agentHold');
+  if (!el) return;
+  const on = !!busy;
+  el.hidden = !on;
+  document.body.classList.toggle('agent-busy', on);
+  if (on) {
+    const title = $('agentHoldTitle');
+    if (title) title.textContent = t('Agent arbeitet …');
+  }
+}
 async function pollExternal() {
   if (!S.st || S.busy || S.importing || document.hidden) return;
   let p;
   try { p = await (await fetch('/api/poll', { headers: langHeader() })).json(); } catch (_) { return; }
-  if (typeof p.external !== 'number' || p.external === S.st.external) return;
+  syncAgentHold(!!p.agent_busy);
+  if (p.agent_busy) return; // hold — refresh after busy clears + mutations bump
+  const mut = typeof p.mutations === 'number' ? p.mutations : 0;
+  if (S.mutations === undefined) S.mutations = mut;
+  const extChanged = typeof p.external === 'number' && p.external !== S.st.external;
+  const mutChanged = mut !== S.mutations;
+  if (!extChanged && !mutChanged) return;
+  S.mutations = mut;
   await loadState();
   resetErgebnis();
   try { await loadView(); } catch (_) { S.act = S.sel = S.fu = null; }
   render();
-  toast(p.what?.length ? t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen ({what}).', { what: p.what.join(', ') })
-    : t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen.'));
+  if (mutChanged && !extChanged) {
+    toast(t('Agent hat das Modell geändert. Die Ansicht ist neu geladen.'));
+  } else {
+    toast(p.what?.length ? t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen ({what}).', { what: p.what.join(', ') })
+      : t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen.'));
+  }
 }
 setInterval(() => guard(pollExternal), 3000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) guard(pollExternal); });

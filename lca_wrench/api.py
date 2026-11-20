@@ -106,8 +106,24 @@ async def language(request: Request, call_next):
     return await call_next(request)
 
 
+@app.middleware("http")
+async def agent_mutation_bump(request: Request, call_next):
+    """Planet A (#248): MCP writes send X-Wrench-Agent → bump poll mutations for live UI."""
+    response = await call_next(request)
+    path = request.url.path
+    if (
+        request.headers.get("x-wrench-agent") == "1"
+        and request.method == "POST"
+        and response.status_code < 400
+        and path.startswith("/api/")
+        and path not in ("/api/agent/busy", "/api/poll", "/api/state")
+    ):
+        s.bump_agent_mutation(path)
+    return response
+
+
 # what works before a project is open: the state, choosing a project, copying one
-_WITHOUT_PROJECT = {s.state, s.poll, s.set_project, s.copy_project_files, s.copy_older_project, imports.create_project,
+_WITHOUT_PROJECT = {s.state, s.poll, s.set_agent_busy, s.set_project, s.copy_project_files, s.copy_older_project, imports.create_project,
                     imports.start}
 
 
@@ -129,7 +145,54 @@ def run(fn, *args, **kwargs):
             raise HTTPException(400, str(e))
 
 
+def _proxy_search_unlocked(
+    q: str, loc: str | None, limit: int, context: str, deep: bool = False
+):
+    """Proxy search outside the long Brightway LOCK (sheet/calc stay responsive).
+
+    Under a *brief* lock: require open project + Wrench ``respell`` (same typo
+    path as Daten: ``steel vbar`` → ``steel bar``). Planet A hybrid then runs unlocked.
+    """
+    spelling = None
+    with s.LOCK:
+        s.sync_external()
+        if not s.project_open():
+            raise HTTPException(409, _("Bitte zuerst oben ein Projekt wählen."))
+        raw = (q or "").strip()
+        if raw:
+            try:
+                roles = s.models.roles()
+                dbs = [n for n, r in roles.items() if r in ("background", "model")]
+                spelling = s.respell(raw, dbs)
+            except Exception:
+                spelling = None
+    q_use = spelling or q
+    try:
+        out = s.proxy_search(q_use, loc, limit, context, deep=bool(deep))
+    except s.ReadOnlyError as e:
+        raise HTTPException(409, str(e))
+    except (KeyError, bd.errors.UnknownObject, ExchangeDataset.DoesNotExist) as e:
+        raise HTTPException(404, str(e).strip("'\"") or _("Nicht gefunden."))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if spelling and isinstance(out, dict):
+        note = f"Spelling «{raw}» → {spelling} (same as Daten)"
+        notices = list(out.get("ui_notices") or [])
+        if note not in notices:
+            out["ui_notices"] = [note, *notices]
+        out["query_input"] = raw
+        out["query_corrected"] = spelling
+        for row in out.get("results") or []:
+            if isinstance(row, dict):
+                row.setdefault("spelling", spelling)
+    return out
+
+
 # ---------- request bodies ----------
+
+class AgentBusyIn(BaseModel):
+    busy: bool = False
+
 
 class ProjectIn(BaseModel):
     name: str
@@ -138,10 +201,11 @@ class ProjectIn(BaseModel):
 
 class ActIn(BaseModel):
     id: str  # Brightway ids are 64-bit, too large for JavaScript numbers
-    method: list[str]
+    method: list[str] | None = None
 
 
 class CalcIn(ActIn):
+    method: list[str]  # calc / graph need a method; activity sheet may omit
     amount: float = Field(1.0, gt=0)
 
 
@@ -319,6 +383,12 @@ def get_poll():
     return run(s.poll)
 
 
+@app.post("/api/agent/busy")
+def post_agent_busy(body: AgentBusyIn):
+    """Hold overlay while MCP write tools run (#248)."""
+    return run(s.set_agent_busy, body.busy)
+
+
 @app.get("/api/state")
 def get_state():
     return run(s.state)
@@ -425,6 +495,40 @@ def get_search(q: str = "", loc: str | None = None, limit: int = 60, db: str | N
                unit or None, comp or None)
 
 
+class ProxySearchIn(BaseModel):
+    q: str = ""
+    loc: str | None = None
+    limit: int = 20
+    context: str = ""
+    deep: bool = False  # LLM tree search (slow); same as MCP deep=True
+
+
+@app.get("/api/search/proxy")
+def get_search_proxy(
+    q: str = "", loc: str | None = None, limit: int = 20, context: str = "", deep: bool = False
+):
+    """Planet A proxy / hybrid search (rail view Proxy). Does not replace /api/search.
+
+    Runs outside the global Brightway LOCK so sheet/calc stay responsive.
+    ``deep`` enables LLM tree search (can take several minutes).
+    """
+    return _proxy_search_unlocked(
+        q or "", loc or None, min(max(limit, 1), 50), context or "", deep=bool(deep)
+    )
+
+
+@app.post("/api/search/proxy")
+def post_search_proxy(body: ProxySearchIn):
+    """Same as GET; POST preferred for long free-text queries (avoids URL-length / Failed to fetch)."""
+    return _proxy_search_unlocked(
+        body.q or "",
+        body.loc or None,
+        min(max(body.limit, 1), 50),
+        body.context or "",
+        deep=bool(body.deep),
+    )
+
+
 @app.get("/api/search/options")
 def get_search_options():
     return run(s.search_options)
@@ -469,7 +573,8 @@ def post_export_setup(body: ExportSetupIn):
 
 @app.post("/api/activity")
 def post_activity(body: ActIn):
-    return run(s.activity, body.id, _method(body.method))
+    method = _method(body.method) if body.method else None
+    return run(s.activity, body.id, method)
 
 
 # ---------- results ----------

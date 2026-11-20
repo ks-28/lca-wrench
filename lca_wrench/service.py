@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import pickle
 import re
 import shutil
@@ -520,6 +521,161 @@ def search_options() -> dict:
             "compartments": [c for c in COMPARTMENTS if c in comps]}
 
 
+def _proxy_loc_annotate(out: dict, raw_loc: str, resolved: str | None, loc_note: str | None) -> dict:
+    if not isinstance(out, dict):
+        return out
+    if resolved:
+        out["resolved_location"] = resolved
+    if raw_loc:
+        out["location_input"] = raw_loc
+    if loc_note:
+        notices = list(out.get("ui_notices") or [])
+        if loc_note not in notices:
+            out["ui_notices"] = [loc_note, *notices]
+    return out
+
+
+def proxy_search(
+    q: str,
+    location: str | None = None,
+    limit: int = 20,
+    context: str | None = None,
+    deep: bool = False,
+) -> dict:
+    """Planet A hybrid / geo-proxy search (separate from keyword ``search``).
+
+    Prefer in-process import; if Wrench venv lacks deps (e.g. grpc), shell out to
+    ``PLANETA_PYTHON -m lca.wrench_proxy.cli_proxy_search`` (see wrench_serve_planeta.sh).
+
+    Location uses the same ``regions.resolve`` as Wrench keyword search (names + light typos).
+    ``deep`` = LLM tree search (slow; same as MCP ``search_activities(deep=True)``).
+    """
+    import json
+    import os
+    import subprocess
+    from pathlib import Path
+
+    from . import regions
+
+    raw_loc = (location or "").strip()
+    resolved = regions.resolve(raw_loc) if raw_loc else None
+    loc_for_search = resolved or ""
+    loc_note = None
+    if raw_loc and resolved and resolved.casefold() != raw_loc.casefold():
+        shown = regions.label(resolved) if resolved in regions.COUNTRIES else resolved
+        loc_note = f"Interpreted location «{raw_loc}» → {shown}"
+
+    try:
+        from lca.wrench_proxy.search import proxy_search_for_wrench
+
+        out = proxy_search_for_wrench(
+            q or "",
+            location=loc_for_search,
+            limit=limit,
+            deep=bool(deep),
+            context=context or "",
+        )
+        return _proxy_loc_annotate(out, raw_loc, resolved, loc_note)
+    except ImportError:
+        pass
+
+    py = os.environ.get("PLANETA_PYTHON", "").strip()
+    root = os.environ.get("PLANETA_ROOT", "").strip()
+    if not py and root:
+        cand = Path(root) / ".venv" / "bin" / "python"
+        if cand.is_file():
+            py = str(cand)
+    if not py:
+        return _proxy_loc_annotate(
+            {
+                "ok": False,
+                "error": "planeta_proxy_unavailable",
+                "detail": "Import failed and PLANETA_PYTHON/PLANETA_ROOT unset",
+                "results": [],
+                "unresolved": [],
+                "hint": "export PLANETA_ROOT=… PLANETA_PYTHON=$PLANETA_ROOT/.venv/bin/python",
+            },
+            raw_loc,
+            resolved,
+            loc_note,
+        )
+    env = os.environ.copy()
+    if root:
+        # PLANETA_ROOT + this Wrench tree → Daten respell/regions importable inside find_datasets
+        wrench_root = str(Path(__file__).resolve().parents[1])
+        parts = [root, wrench_root]
+        if env.get("PYTHONPATH"):
+            parts.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(parts)
+        env.setdefault("WRENCH_DIR", wrench_root)
+        data = Path(root) / "data"
+        # Prefer host data paths over Docker /app/* baked into the parent env.
+        env["CANONICAL_TREE_PATH"] = str(data / "process_tree.json")
+        env["EMBEDDING_INDEX_PATH"] = str(data / "ecoinvent_embeddings.json")
+        env["LCA_MANIFEST_PATH"] = str(data / "lca_manifest.json")
+        env["LOCAL_AVAILABILITY_PATH"] = str(data / "local_availability.json")
+        env["BRIGHTWAY2_DIR"] = env.get("BRIGHTWAY2_DIR") or str(data / "brightway")
+        env["BRIGHTWAY_DIR"] = env.get("BRIGHTWAY_DIR") or env["BRIGHTWAY2_DIR"]
+        for k in ("LLM_BASE_URL", "EMBEDDING_BASE_URL"):
+            if "host.docker.internal" in (env.get(k) or ""):
+                env[k] = "http://127.0.0.1:11434/v1"
+    cmd = [
+        py,
+        "-m",
+        "lca.wrench_proxy.cli_proxy_search",
+        "--q",
+        q or "",
+        "--loc",
+        loc_for_search,
+        "--context",
+        context or "",
+        "--limit",
+        str(int(limit)),
+    ]
+    if deep:
+        cmd.append("--deep")
+    # Deep tree can take several minutes
+    timeout = 600 if deep else 180
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout)
+    except Exception as e:
+        return _proxy_loc_annotate(
+            {"ok": False, "error": "planeta_proxy_subprocess", "detail": str(e), "results": [], "unresolved": []},
+            raw_loc,
+            resolved,
+            loc_note,
+        )
+    if proc.returncode != 0 and not (proc.stdout or "").strip():
+        return _proxy_loc_annotate(
+            {
+                "ok": False,
+                "error": "planeta_proxy_subprocess",
+                "detail": (proc.stderr or proc.stdout or "")[:500],
+                "results": [],
+                "unresolved": [],
+            },
+            raw_loc,
+            resolved,
+            loc_note,
+        )
+    try:
+        out = json.loads(proc.stdout.strip().splitlines()[-1])
+    except Exception as e:
+        return _proxy_loc_annotate(
+            {
+                "ok": False,
+                "error": "planeta_proxy_bad_json",
+                "detail": f"{e}: {(proc.stdout or '')[:300]}",
+                "results": [],
+                "unresolved": [],
+            },
+            raw_loc,
+            resolved,
+            loc_note,
+        )
+    return _proxy_loc_annotate(out, raw_loc, resolved, loc_note)
+
+
 def search(q: str, location: str | None = None, limit: int = 60, database: str | None = None,
            kind: str = "process", unit: str | None = None, compartment: str | None = None) -> list[dict]:
     """Search processes (kind='process') or elementary flows (kind='flow').
@@ -688,8 +844,8 @@ def respell(q: str, dbs: list[str]) -> str | None:
 
 # ---------- activity detail ----------
 
-def activity(activity_id: int | str, method: tuple) -> dict:
-    d = models.process_detail(activity_id, tuple(method))
+def activity(activity_id: int | str, method: tuple | None) -> dict:
+    d = models.process_detail(activity_id, tuple(method) if method is not None else None)
     roles = models.roles()
     if d["editable"]:
         d["edit_mode"] = "model"
@@ -1091,6 +1247,35 @@ def sensitivity_start(fu: dict, method: tuple, n: int = 300, seed: int | None = 
 _WATCHED = ("lci/databases.db", "lci/databases.db-wal", "databases.json", "methods.json", "setups.pickle")
 _known: dict[str, dict] = {}  # project -> {"stamp", "mods", "roles"}
 EXTERNAL: dict = {"count": 0, "what": []}
+# Planet A Phase 1 (#248): agent MCP writes — UI poll refreshes + hold overlay
+# beat + TTL: crash after busy:true must not stick forever; MCP heartbeats during long calc.
+AGENT: dict = {"busy": False, "mutations": 0, "what": "", "beat": 0.0}
+AGENT_BUSY_TTL_S = float(os.environ.get("WRENCH_AGENT_BUSY_TTL_S", "45"))
+
+
+def set_agent_busy(busy: bool) -> dict:
+    AGENT["busy"] = bool(busy)
+    AGENT["beat"] = time.monotonic() if busy else 0.0
+    return {"ok": True, "busy": AGENT["busy"]}
+
+
+def agent_busy_effective() -> bool:
+    """True only while busy and last heartbeat within TTL; auto-clears stale hold."""
+    if not AGENT.get("busy"):
+        return False
+    age = time.monotonic() - float(AGENT.get("beat") or 0.0)
+    if age > AGENT_BUSY_TTL_S:
+        AGENT["busy"] = False
+        AGENT["beat"] = 0.0
+        return False
+    return True
+
+
+def bump_agent_mutation(what: str = "api") -> None:
+    AGENT["mutations"] = int(AGENT.get("mutations") or 0) + 1
+    AGENT["what"] = what
+    if AGENT.get("busy"):
+        AGENT["beat"] = time.monotonic()  # successful agent write also counts as heartbeat
 
 
 def _stamp() -> tuple:
@@ -1153,4 +1338,9 @@ def sync_external() -> bool:
 
 
 def poll() -> dict:
-    return {"external": EXTERNAL["count"], "what": EXTERNAL["what"]}
+    return {
+        "external": EXTERNAL["count"],
+        "what": EXTERNAL["what"],
+        "mutations": int(AGENT.get("mutations") or 0),
+        "agent_busy": agent_busy_effective(),
+    }
