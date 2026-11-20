@@ -1,8 +1,7 @@
 // LCA Wrench UI: plain JS modules, talks to the local FastAPI service.
 'use strict';
 import { S, $, esc, nf, mKey, methodInfo, methodLabel, familyLabel, api, toast, guard, renderBusy, icon, views, loadPrefs, savePref, csvDownload, download, isModelDb, langHeader, t, LANG } from './core.js';
-import { hasExactLocMatch, renderPlanetaRail, syncThemeToggle, toggleTheme } from './planeta_overlay.js';
-import { setLang } from './i18n.js';
+import { hasExactLocMatch, renderPlanetaRail, syncThemeToggle, applyTheme } from './planeta_overlay.js';import { setLang } from './i18n.js';
 import { vStart } from './views/start.js';
 import { vDaten } from './views/daten.js';
 import { vProxy } from './views/proxy.js';
@@ -299,8 +298,8 @@ async function cwChoose(choice) {
 const A = {
   async view(k) { await go(k); },
   explain() { S.explain = !S.explain; savePref('wb-explain', S.explain ? '1' : '0'); render(); },
-  'toggle-theme'() { toggleTheme(); },
-  async lang() {
+  'set-theme'(k) { if (k === 'light' || k === 'dark') applyTheme(k); },
+  'toggle-theme'() { applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },  async lang() {
     setLang(LANG === 'en' ? 'de' : 'en');
     render();  // the UI texts at once; then what the server writes (history, model errors) in the new language
     await loadState(); try { await loadView(); } catch (_) { /* the view shows its own message */ }
@@ -991,18 +990,43 @@ const loadStart = Date.now();
 const loadTick = setInterval(() => { const el = $('loadSecs'); if (el) el.textContent = `${Math.round((Date.now() - loadStart) / 1000)} s`; else clearInterval(loadTick); }, 1000);
 guard(async () => { await resumeImport(); await loadState(); clearInterval(loadTick); render(); if (S.st.project && !S.st.load_error && shouldAutoStart()) await startTour(tourHooks); });
 
-// Changes from outside (e.g. Activity Browser): the server compares the project files, we reload when it saw one
+// Changes from outside (Activity Browser) OR agent MCP writes (#248 mutations / agent_busy)
+function syncAgentHold(busy) {
+  const el = $('agentHold');
+  if (!el) return;
+  const on = !!busy;
+  el.hidden = !on;
+  if (on) {
+    const title = $('agentHoldTitle');
+    const body = $('agentHoldBody');
+    const eye = $('agentHoldEyebrow');
+    if (eye) eye.textContent = t('Agent');
+    if (title) title.textContent = t('Agent bearbeitet …');
+    if (body) body.textContent = t('Bitte warten — das Modell ändert sich per MCP. Nicht parallel klicken.');
+  }
+}
 async function pollExternal() {
   if (!S.st || S.busy || S.importing || document.hidden) return;
   let p;
   try { p = await (await fetch('/api/poll', { headers: langHeader() })).json(); } catch (_) { return; }
-  if (typeof p.external !== 'number' || p.external === S.st.external) return;
+  syncAgentHold(!!p.agent_busy);
+  if (p.agent_busy) return; // hold — refresh after busy clears + mutations bump
+  const mut = typeof p.mutations === 'number' ? p.mutations : 0;
+  if (S.mutations === undefined) S.mutations = mut;
+  const extChanged = typeof p.external === 'number' && p.external !== S.st.external;
+  const mutChanged = mut !== S.mutations;
+  if (!extChanged && !mutChanged) return;
+  S.mutations = mut;
   await loadState();
   resetErgebnis();
   try { await loadView(); } catch (_) { S.act = S.sel = S.fu = null; }
   render();
-  toast(p.what?.length ? t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen ({what}).', { what: p.what.join(', ') })
-    : t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen.'));
+  if (mutChanged && !extChanged) {
+    toast(t('Agent hat das Modell geändert. Die Ansicht ist neu geladen.'));
+  } else {
+    toast(p.what?.length ? t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen ({what}).', { what: p.what.join(', ') })
+      : t('Ein anderes Programm hat das Projekt geändert. Die Ansicht ist neu geladen.'));
+  }
 }
 setInterval(() => guard(pollExternal), 3000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) guard(pollExternal); });

@@ -35,22 +35,23 @@ export function toggleTheme() {
   applyTheme(themeIsDark() ? 'light' : 'dark');
 }
 
-/** Sync rail button label/icons after lang or theme change. */
+/** Sync segmented Light/Dark control — pressed = current mode. */
 export function syncThemeToggle() {
   const dark = themeIsDark();
-  const btn = $('themeToggle');
-  const lab = $('themeToggleLabel');
-  const moon = $('themeIconMoon');
-  const sun = $('themeIconSun');
-  // Label + icon = destination (dark → Light/sun; light → Dark/moon)
-  if (lab) lab.textContent = dark ? t('Hell') : t('Dunkel');
-  if (btn) {
-    btn.title = dark ? t('Zu hellem Modus wechseln') : t('Zu dunklem Modus wechseln');
-    btn.setAttribute('aria-label', btn.title);
-    btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+  const group = $('themeToggle');
+  const lightBtn = $('themeLight');
+  const darkBtn = $('themeDark');
+  if (group) group.setAttribute('aria-label', t('Darstellung'));
+  if (lightBtn) {
+    lightBtn.setAttribute('aria-pressed', dark ? 'false' : 'true');
+    lightBtn.title = t('Hell');
+    lightBtn.setAttribute('aria-label', t('Hell'));
   }
-  if (moon) moon.hidden = dark;
-  if (sun) sun.hidden = !dark;
+  if (darkBtn) {
+    darkBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    darkBtn.title = t('Dunkel');
+    darkBtn.setAttribute('aria-label', t('Dunkel'));
+  }
 }
 
 const PROXY_ICON = '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6M8 11h6"/>';

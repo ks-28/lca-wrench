@@ -28,10 +28,17 @@ const EN = {
   'Rundgang': 'Tour',
   'Rückgängig': 'Undo',
   'Erklärungen an': 'Help on',
+  'Agent': 'Agent',
+  'Agent bearbeitet …': 'Agent is editing…',
+  'Bitte warten — das Modell ändert sich per MCP. Nicht parallel klicken.':
+    'Please wait — the model is changing via MCP. Do not click in parallel.',
+  'Agent hat das Modell geändert. Die Ansicht ist neu geladen.':
+    'Agent changed the model. The view was reloaded.',
+
   'Erklärungen aus': 'Help off',
   'Hell': 'Light',
   'Dunkel': 'Dark',
-  'Zu hellem Modus wechseln': 'Switch to light mode',
+  'Darstellung': 'Appearance',  'Zu hellem Modus wechseln': 'Switch to light mode',
   'Zu dunklem Modus wechseln': 'Switch to dark mode',
   '(Arbeitskopie)': '(working copy)',
   'Kopie von {name}': 'Copy of {name}',

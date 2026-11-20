@@ -1246,6 +1246,18 @@ def sensitivity_start(fu: dict, method: tuple, n: int = 300, seed: int | None = 
 _WATCHED = ("lci/databases.db", "lci/databases.db-wal", "databases.json", "methods.json", "setups.pickle")
 _known: dict[str, dict] = {}  # project -> {"stamp", "mods", "roles"}
 EXTERNAL: dict = {"count": 0, "what": []}
+# Planet A Phase 1 (#248): agent MCP writes — UI poll refreshes + hold overlay
+AGENT: dict = {"busy": False, "mutations": 0, "what": ""}
+
+
+def set_agent_busy(busy: bool) -> dict:
+    AGENT["busy"] = bool(busy)
+    return {"ok": True, "busy": AGENT["busy"]}
+
+
+def bump_agent_mutation(what: str = "api") -> None:
+    AGENT["mutations"] = int(AGENT.get("mutations") or 0) + 1
+    AGENT["what"] = what
 
 
 def _stamp() -> tuple:
@@ -1308,4 +1320,9 @@ def sync_external() -> bool:
 
 
 def poll() -> dict:
-    return {"external": EXTERNAL["count"], "what": EXTERNAL["what"]}
+    return {
+        "external": EXTERNAL["count"],
+        "what": EXTERNAL["what"],
+        "mutations": int(AGENT.get("mutations") or 0),
+        "agent_busy": bool(AGENT.get("busy")),
+    }

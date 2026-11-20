@@ -64,8 +64,13 @@ p{margin:0}
 .rail{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 .rail-in{position:sticky;top:0;display:flex;flex-direction:column;gap:4px;padding:12px 8px;flex:1;min-height:calc(100vh - 72px)}
 .rail-navs{display:flex;flex-direction:column;gap:4px;flex:1 1 auto}
-.rail-theme{margin-top:auto;flex:none}
-.nav{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;padding:9px 4px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:11.5px}
+/* Compact theme segment — not a nav item */
+.rail-theme{margin-top:auto;flex:none;display:flex;align-items:center;justify-content:center;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);align-self:center;width:auto}
+.theme-opt{display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;line-height:0}
+.theme-opt svg{width:16px;height:16px;display:block}
+.theme-opt:hover{color:var(--fg)}
+.theme-opt[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 12%,transparent)}
+.theme-opt:focus-visible{outline:2px solid var(--accent);outline-offset:1px}.nav{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;padding:9px 4px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:11.5px}
 .nav svg{width:21px;height:21px}
 .nav:hover{background:var(--surface-2);color:var(--fg)}
 .nav[aria-current="page"]{background:var(--accent-soft);color:var(--accent-ink)}
@@ -369,3 +374,9 @@ span.formula{font-family:var(--font-num);font-size:13px;background:var(--surface
 @media (max-width:980px){.catgrid.two{grid-template-columns:minmax(0,1fr)}}
 .movelist{max-height:220px;overflow:auto;font-size:13px;margin:0;padding-left:18px}
 button.chip{border:0;cursor:pointer;font-family:inherit}
+
+/* Planet A #248 — agent busy hold while MCP mutates */
+.agent-hold{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:color-mix(in srgb,var(--fg) 35%,transparent);backdrop-filter:blur(2px)}
+.agent-hold[hidden]{display:none!important}
+.agent-hold-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 24px;max-width:380px;box-shadow:0 12px 40px color-mix(in srgb,var(--fg) 18%,transparent);display:flex;flex-direction:column;gap:8px}
+.agent-hold-card h2{font-size:20px}

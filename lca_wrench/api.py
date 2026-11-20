@@ -106,8 +106,24 @@ async def language(request: Request, call_next):
     return await call_next(request)
 
 
+@app.middleware("http")
+async def agent_mutation_bump(request: Request, call_next):
+    """Planet A (#248): MCP writes send X-Wrench-Agent → bump poll mutations for live UI."""
+    response = await call_next(request)
+    path = request.url.path
+    if (
+        request.headers.get("x-wrench-agent") == "1"
+        and request.method == "POST"
+        and response.status_code < 400
+        and path.startswith("/api/")
+        and path not in ("/api/agent/busy", "/api/poll", "/api/state")
+    ):
+        s.bump_agent_mutation(path)
+    return response
+
+
 # what works before a project is open: the state, choosing a project, copying one
-_WITHOUT_PROJECT = {s.state, s.poll, s.set_project, s.copy_project_files, s.copy_older_project, imports.create_project,
+_WITHOUT_PROJECT = {s.state, s.poll, s.set_agent_busy, s.set_project, s.copy_project_files, s.copy_older_project, imports.create_project,
                     imports.start}
 
 
@@ -173,6 +189,10 @@ def _proxy_search_unlocked(
 
 
 # ---------- request bodies ----------
+
+class AgentBusyIn(BaseModel):
+    busy: bool = False
+
 
 class ProjectIn(BaseModel):
     name: str
@@ -360,6 +380,12 @@ def _method(m: list[str]) -> tuple:
 @app.get("/api/poll")
 def get_poll():
     return run(s.poll)
+
+
+@app.post("/api/agent/busy")
+def post_agent_busy(body: AgentBusyIn):
+    """Hold overlay while MCP write tools run (#248)."""
+    return run(s.set_agent_busy, body.busy)
 
 
 @app.get("/api/state")
