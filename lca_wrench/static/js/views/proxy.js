@@ -49,8 +49,8 @@ export function vProxy() {
   return `${explain(t('Proxy = strukturierte Suche (Text + Ort), keine Chat-Box. Agent soll query + location aufrufen; UI zeigt Code-Begründungen.'))}
   ${status}
   <div class="dataview proxyview">
-    <aside class="card plist" aria-label="${t('Proxy-Suche')}">
-      <form id="proxySearchForm" class="reslist" style="gap:6px">
+    <aside class="card proxy-aside" aria-label="${t('Proxy-Suche')}">
+      <form id="proxySearchForm" class="proxy-form reslist" style="gap:6px">
         <label class="f" style="margin:0"><span>${t('Was suchst du?')}</span>
           <textarea id="pq" rows="4" placeholder="${t('z.B. section bar rolling, steel — oder reinforcing steel for construction')}" aria-label="${t('Freitext Prozess/Produkt')}" ${loading ? 'disabled' : ''}>${esc(S.proxy.q)}</textarea>
         </label>
@@ -61,7 +61,7 @@ export function vProxy() {
         <button class="btn primary" type="submit" ${loading ? 'disabled' : ''}>${loading ? t('Suche …') : t('Proxy suchen')}</button>
       </form>
       ${err}
-      <div class="reslist" style="margin-top:8px">${list}</div>
+      <div class="proxy-results reslist">${list}</div>
     </aside>
     <div style="display:flex;flex-direction:column;gap:18px;min-width:0">${detail}</div>
   </div>`;
