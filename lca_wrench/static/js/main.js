@@ -314,16 +314,26 @@ const A = {
     await A['run-proxy-search']();
   },
   async 'run-proxy-search'() {
-    const out = await api(`/api/search/proxy?q=${encodeURIComponent(S.proxy.q)}&loc=${encodeURIComponent(S.proxy.loc)}`);
-    if (out && out.ok === false) {
-      S.proxy.results = [];
-      S.proxy.error = out.detail || out.error || t('Proxy-Suche nicht verfügbar.');
-    } else {
-      S.proxy.results = out.results || out || [];
-      S.proxy.error = null;
+    S.proxy.loading = true; S.proxy.error = null; S.proxy.results = []; S.proxy.sel = null; S.proxy.act = null;
+    S.proxy.summary = null; S.proxy.ui_notices = [];
+    render();
+    toast(t('Proxy-Suche gestartet — oft 10–40 s (Embeddings).'));
+    try {
+      const out = await api(`/api/search/proxy?q=${encodeURIComponent(S.proxy.q)}&loc=${encodeURIComponent(S.proxy.loc)}`);
+      if (out && out.ok === false) {
+        S.proxy.results = [];
+        S.proxy.error = out.detail || out.error || t('Proxy-Suche nicht verfügbar.');
+      } else {
+        S.proxy.results = out.results || [];
+        S.proxy.summary = out.summary || null;
+        S.proxy.ui_notices = out.ui_notices || [];
+        S.proxy.duration_ms = out.duration_ms ?? null;
+        S.proxy.error = null;
+      }
+    } finally {
+      S.proxy.loading = false;
+      render(); $('pq')?.focus();
     }
-    S.proxy.sel = null; S.proxy.act = null;
-    render(); $('pq')?.focus();
   },
   async 'open-proc'(k) { S.msel = k; S.uncFor = null; S.prevScore = null; S.showAllTech = S.showAllBio = false; S.mact = await sheetFor(k); render(); },
   async 'open-db'(k) { S.mdb = k; S.msel = null; S.mact = null; await go('modell'); },

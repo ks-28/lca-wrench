@@ -91,6 +91,8 @@ input[type=range]{accent-color:var(--accent);width:100%}
 
 /* data view */
 .dataview{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:start}
+/* Proxy: wider hit list so "why" lines are readable */
+.dataview.proxyview{grid-template-columns:minmax(300px,0.95fr) minmax(0,1.15fr)}
 .plist{padding:10px;display:flex;flex-direction:column;gap:2px;max-height:calc(100vh - 140px);overflow:auto;position:sticky;top:12px}
 .plist input{width:100%;margin-bottom:6px}
 .plist .grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 8px 3px}
