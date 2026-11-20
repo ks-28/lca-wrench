@@ -78,6 +78,8 @@ const EN = {
   'Proxy-Suche': 'Proxy search',
   'Proxy suchen': 'Search proxy',
   'Proxy öffnen': 'Open Proxy',
+  'Planet A': 'Planet A',
+  'Planet A — nicht Teil von Upstream-Wrench': 'Planet A — not part of upstream Wrench',
   'Kein exakter Orts-Treffer in der Wrench-Suche. Proxy-Suche öffnen?': 'No exact location match in Wrench search. Open Proxy search?',
   'Kein Proxy-Treffer. Versuch einen anderen Begriff oder Ort.': 'No proxy hits. Try another term or location.',
   'Proxy-Suche: Planet-A Hybrid (Embeddings + Geo-Proxy). Zuerst unter Daten die Wrench-Suche nutzen; bei keinem exakten Orts-Treffer hierher.': 'Proxy search: Planet A hybrid (embeddings + geo proxy). Prefer Daten (Wrench search) first; come here when there is no exact location match.',

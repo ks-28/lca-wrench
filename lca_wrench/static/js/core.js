@@ -8,7 +8,7 @@ export const S = {
   st: null, method: null, view: 'start', explain: true, busy: 0,
   // Daten
   q: '', loc: '', dbf: '', unit: '', sopts: null, results: [], sel: null, act: null, showAllTech: false, showAllBio: false,
-  // Proxy (Planet A hybrid — separate from Daten)
+  // Proxy state owned by Planet A overlay (planeta_overlay.js / views/proxy.js)
   proxy: { q: '', loc: '', results: [], sel: null, act: null, error: null },
   // Modellieren
   mdb: null, mprocs: [], msel: null, mact: null, newProc: false, newDb: false, prevScore: null, move: null,
@@ -90,25 +90,16 @@ export function renderBusy() {
 const IC = {
   start: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
   daten: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
-  proxy: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6M8 11h6"/>',
   modell: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4.5a2 2 0 0 1 2 2V14"/>',
   rechnen: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h2M12 18h2"/>',
   ergebnis: '<path d="M4 20h16"/><path d="M7 17v-5M12 17V7M17 17v-8"/>',
   vergleich: '<path d="M4 7h16M4 12h9M4 17h13"/>',
   parameter: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
 };
-export const views = () => [['start', t('Start')], ['daten', t('Daten')], ['proxy', t('Proxy')], ['modell', t('Modellieren')], ['parameter', t('Parameter')], ['rechnen', t('Rechnen')], ['ergebnis', t('Ergebnis')], ['vergleich', t('Vergleich')]];
+export const views = () => [['start', t('Start')], ['daten', t('Daten')], ['modell', t('Modellieren')], ['parameter', t('Parameter')], ['rechnen', t('Rechnen')], ['ergebnis', t('Ergebnis')], ['vergleich', t('Vergleich')]];
 export const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
 // search results carry "spelling" where the server corrected a word ("steeel" -> "steel")
 export const spellingNote = rows => { const f = rows.find(r => r.spelling)?.spelling; return f ? `<p class="muted" role="status" style="font-size:13px;margin:2px 4px 6px">${t('Auch Treffer für «{q}»', { q: esc(f) })}</p>` : ''; };
-/** Exact loc match for Daten→Proxy handoff (empty loc = any hit wins). */
-export const hasExactLocMatch = (rows, loc) => {
-  const list = rows || [];
-  const want = (loc || '').trim();
-  if (!want) return list.length > 0;
-  const key = want.toLowerCase();
-  return list.some(r => String(r.location || '').toLowerCase() === key);
-};
 export const explain = t => S.explain ? `<div class="explain"><span class="i" aria-hidden="true">i</span><p>${t}</p></div>` : '';
 
 export const unitChoices = () => [['unit', t('Stück')], ['kilogram', 'kg'], ['kilometer', 'km'], ['kilowatt hour', 'kWh'], ['megajoule', 'MJ'],
