@@ -520,23 +520,61 @@ def search_options() -> dict:
             "compartments": [c for c in COMPARTMENTS if c in comps]}
 
 
-def proxy_search(q: str, location: str | None = None, limit: int = 20, context: str | None = None) -> dict:
+def _proxy_loc_annotate(out: dict, raw_loc: str, resolved: str | None, loc_note: str | None) -> dict:
+    if not isinstance(out, dict):
+        return out
+    if resolved:
+        out["resolved_location"] = resolved
+    if raw_loc:
+        out["location_input"] = raw_loc
+    if loc_note:
+        notices = list(out.get("ui_notices") or [])
+        if loc_note not in notices:
+            out["ui_notices"] = [loc_note, *notices]
+    return out
+
+
+def proxy_search(
+    q: str,
+    location: str | None = None,
+    limit: int = 20,
+    context: str | None = None,
+    deep: bool = False,
+) -> dict:
     """Planet A hybrid / geo-proxy search (separate from keyword ``search``).
 
     Prefer in-process import; if Wrench venv lacks deps (e.g. grpc), shell out to
     ``PLANETA_PYTHON -m lca.wrench_proxy.cli_proxy_search`` (see wrench_serve_planeta.sh).
+
+    Location uses the same ``regions.resolve`` as Wrench keyword search (names + light typos).
+    ``deep`` = LLM tree search (slow; same as MCP ``search_activities(deep=True)``).
     """
     import json
     import os
     import subprocess
     from pathlib import Path
 
+    from . import regions
+
+    raw_loc = (location or "").strip()
+    resolved = regions.resolve(raw_loc) if raw_loc else None
+    loc_for_search = resolved or ""
+    loc_note = None
+    if raw_loc and resolved and resolved.casefold() != raw_loc.casefold():
+        shown = regions.label(resolved) if resolved in regions.COUNTRIES else resolved
+        loc_note = f"Interpreted location «{raw_loc}» → {shown}"
+
     try:
         from lca.wrench_proxy.search import proxy_search_for_wrench
 
-        return proxy_search_for_wrench(
-            q or "", location=location or "", limit=limit, context=context or ""
+        out = proxy_search_for_wrench(
+            q or "",
+            location=loc_for_search,
+            limit=limit,
+            deep=bool(deep),
+            context=context or "",
         )
+        return _proxy_loc_annotate(out, raw_loc, resolved, loc_note)
     except ImportError:
         pass
 
@@ -547,17 +585,28 @@ def proxy_search(q: str, location: str | None = None, limit: int = 20, context: 
         if cand.is_file():
             py = str(cand)
     if not py:
-        return {
-            "ok": False,
-            "error": "planeta_proxy_unavailable",
-            "detail": "Import failed and PLANETA_PYTHON/PLANETA_ROOT unset",
-            "results": [],
-            "unresolved": [],
-            "hint": "export PLANETA_ROOT=… PLANETA_PYTHON=$PLANETA_ROOT/.venv/bin/python",
-        }
+        return _proxy_loc_annotate(
+            {
+                "ok": False,
+                "error": "planeta_proxy_unavailable",
+                "detail": "Import failed and PLANETA_PYTHON/PLANETA_ROOT unset",
+                "results": [],
+                "unresolved": [],
+                "hint": "export PLANETA_ROOT=… PLANETA_PYTHON=$PLANETA_ROOT/.venv/bin/python",
+            },
+            raw_loc,
+            resolved,
+            loc_note,
+        )
     env = os.environ.copy()
     if root:
-        env["PYTHONPATH"] = root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        # PLANETA_ROOT + this Wrench tree → Daten respell/regions importable inside find_datasets
+        wrench_root = str(Path(__file__).resolve().parents[1])
+        parts = [root, wrench_root]
+        if env.get("PYTHONPATH"):
+            parts.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(parts)
+        env.setdefault("WRENCH_DIR", wrench_root)
         data = Path(root) / "data"
         # Prefer host data paths over Docker /app/* baked into the parent env.
         env["CANONICAL_TREE_PATH"] = str(data / "process_tree.json")
@@ -576,34 +625,54 @@ def proxy_search(q: str, location: str | None = None, limit: int = 20, context: 
         "--q",
         q or "",
         "--loc",
-        location or "",
+        loc_for_search,
         "--context",
         context or "",
         "--limit",
         str(int(limit)),
     ]
+    if deep:
+        cmd.append("--deep")
+    # Deep tree can take several minutes
+    timeout = 600 if deep else 180
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=180)
+        proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout)
     except Exception as e:
-        return {"ok": False, "error": "planeta_proxy_subprocess", "detail": str(e), "results": [], "unresolved": []}
+        return _proxy_loc_annotate(
+            {"ok": False, "error": "planeta_proxy_subprocess", "detail": str(e), "results": [], "unresolved": []},
+            raw_loc,
+            resolved,
+            loc_note,
+        )
     if proc.returncode != 0 and not (proc.stdout or "").strip():
-        return {
-            "ok": False,
-            "error": "planeta_proxy_subprocess",
-            "detail": (proc.stderr or proc.stdout or "")[:500],
-            "results": [],
-            "unresolved": [],
-        }
+        return _proxy_loc_annotate(
+            {
+                "ok": False,
+                "error": "planeta_proxy_subprocess",
+                "detail": (proc.stderr or proc.stdout or "")[:500],
+                "results": [],
+                "unresolved": [],
+            },
+            raw_loc,
+            resolved,
+            loc_note,
+        )
     try:
-        return json.loads(proc.stdout.strip().splitlines()[-1])
+        out = json.loads(proc.stdout.strip().splitlines()[-1])
     except Exception as e:
-        return {
-            "ok": False,
-            "error": "planeta_proxy_bad_json",
-            "detail": f"{e}: {(proc.stdout or '')[:300]}",
-            "results": [],
-            "unresolved": [],
-        }
+        return _proxy_loc_annotate(
+            {
+                "ok": False,
+                "error": "planeta_proxy_bad_json",
+                "detail": f"{e}: {(proc.stdout or '')[:300]}",
+                "results": [],
+                "unresolved": [],
+            },
+            raw_loc,
+            resolved,
+            loc_note,
+        )
+    return _proxy_loc_annotate(out, raw_loc, resolved, loc_note)
 
 
 def search(q: str, location: str | None = None, limit: int = 60, database: str | None = None,

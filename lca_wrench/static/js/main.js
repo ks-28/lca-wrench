@@ -1,7 +1,7 @@
 // LCA Wrench UI: plain JS modules, talks to the local FastAPI service.
 'use strict';
 import { S, $, esc, nf, mKey, methodInfo, methodLabel, familyLabel, api, toast, guard, renderBusy, icon, views, loadPrefs, savePref, csvDownload, download, isModelDb, langHeader, t, LANG } from './core.js';
-import { hasExactLocMatch, renderPlanetaRail } from './planeta_overlay.js';
+import { hasExactLocMatch, renderPlanetaRail, syncThemeToggle, toggleTheme } from './planeta_overlay.js';
 import { setLang } from './i18n.js';
 import { vStart } from './views/start.js';
 import { vDaten } from './views/daten.js';
@@ -227,6 +227,7 @@ function renderTop() {
   const eb = $('explainBtn'); eb.setAttribute('aria-pressed', S.explain); eb.textContent = S.explain ? t('Erklärungen an') : t('Erklärungen aus');
   // Planet A: separator + Proxy at end (planeta_overlay.js) — stock views() stays upstream-clean
   $('rail').innerHTML = renderPlanetaRail(views(), icon, S.view);
+  syncThemeToggle();
 }
 function projectTag(p) {
   return p.copy ? ' ' + t('(Arbeitskopie)') : p.testcopy ? ' ' + t('(Testkopie)') : p.legacy ? ' ' + t('(Activity Browser 2, nur als Kopie)')
@@ -298,6 +299,7 @@ async function cwChoose(choice) {
 const A = {
   async view(k) { await go(k); },
   explain() { S.explain = !S.explain; savePref('wb-explain', S.explain ? '1' : '0'); render(); },
+  'toggle-theme'() { toggleTheme(); },
   async lang() {
     setLang(LANG === 'en' ? 'de' : 'en');
     render();  // the UI texts at once; then what the server writes (history, model errors) in the new language
@@ -314,26 +316,80 @@ const A = {
     await A['run-proxy-search']();
   },
   async 'run-proxy-search'() {
-    S.proxy.loading = true; S.proxy.error = null; S.proxy.results = []; S.proxy.sel = null; S.proxy.act = null;
-    S.proxy.summary = null; S.proxy.ui_notices = [];
+    const deep = !!S.proxy.deep;
+    S.proxy.loading = true; S.proxy.error = null; S.proxy.results = []; S.proxy.related_results = [];
+    S.proxy.sel = null; S.proxy.act = null;
+    S.proxy.summary = null; S.proxy.ui_notices = []; S.proxy.deep_used = false;
+    S.proxy.loadStarted = Date.now();
+    S.proxy.loadExpectMs = deep ? 180000 : 35000;
+    if (S.proxy._progressTick) { clearInterval(S.proxy._progressTick); S.proxy._progressTick = null; }
     render();
-    toast(t('Proxy-Suche gestartet — oft 10–40 s (Embeddings).'));
+    // Lightweight DOM tick — avoid full re-render (keeps form mounted)
+    S.proxy._progressTick = setInterval(() => {
+      if (!S.proxy.loading) { clearInterval(S.proxy._progressTick); S.proxy._progressTick = null; return; }
+      const elapsed = Math.max(0, Date.now() - S.proxy.loadStarted);
+      const expect = S.proxy.loadExpectMs || 35000;
+      const pct = Math.min(92, Math.round((1 - Math.exp(-elapsed / expect)) * 100));
+      const left = Math.max(0, Math.round((expect - elapsed) / 1000));
+      const elapsedSec = Math.round(elapsed / 1000);
+      const fill = $('proxyProgressFill');
+      const eta = $('proxyProgressEta');
+      if (fill) fill.style.width = `${pct}%`;
+      if (eta) {
+        eta.textContent = left > 0
+          ? t('ca. {n} s verbleibend · {e} s vergangen', { n: left, e: elapsedSec })
+          : t('noch etwas länger · {e} s vergangen', { e: elapsedSec });
+      }
+    }, 400);
+    toast(deep
+      ? t('Deep Search gestartet — oft mehrere Minuten (LLM-Baum).')
+      : t('Proxy-Suche gestartet — oft 10–40 s (Embeddings).'));
     try {
-      const out = await api(`/api/search/proxy?q=${encodeURIComponent(S.proxy.q)}&loc=${encodeURIComponent(S.proxy.loc)}`);
+      // POST: long free-text must not go in the query string (browser "Failed to fetch")
+      const out = await api('/api/search/proxy', {
+        q: S.proxy.q || '',
+        loc: S.proxy.loc || '',
+        limit: 20,
+        deep,
+      });
       if (out && out.ok === false) {
         S.proxy.results = [];
+        S.proxy.related_results = [];
         S.proxy.error = out.detail || out.error || t('Proxy-Suche nicht verfügbar.');
       } else {
         S.proxy.results = out.results || [];
+        S.proxy.related_results = out.related_results || [];
         S.proxy.summary = out.summary || null;
         S.proxy.ui_notices = out.ui_notices || [];
         S.proxy.duration_ms = out.duration_ms ?? null;
+        S.proxy.deep_used = !!(out.deep_search_used || deep);
         S.proxy.error = null;
+        // Show resolved code in the field after search (India/Indai → IN)
+        if (out.resolved_location) S.proxy.loc = out.resolved_location;
       }
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      S.proxy.results = [];
+      S.proxy.related_results = [];
+      S.proxy.error = /Failed to fetch|NetworkError|Load failed|fetch/i.test(msg)
+        ? t('Server nicht erreichbar (Wrench down oder Verbindung abgebrochen). Neu starten: scripts/wrench_serve_planeta.sh')
+        : msg;
     } finally {
+      if (S.proxy._progressTick) { clearInterval(S.proxy._progressTick); S.proxy._progressTick = null; }
+      S.proxy.deep = false; // next normal search is fast again unless user clicks Deep
       S.proxy.loading = false;
+      S.proxy.searched = true; // unlock Deep CTA + demote Proxy button
       render(); $('pq')?.focus();
     }
+  },
+  async 'proxy-deep-search'() {
+    // Sync fields first — Deep sits outside submit path
+    if ($('pq')) S.proxy.q = $('pq').value;
+    if ($('ploc')) S.proxy.loc = ($('ploc').value || '').trim();
+    if (!(S.proxy.q || '').trim()) { toast(t('Zuerst einen Suchbegriff eingeben.')); return; }
+    if (!S.proxy.searched) return; // Deep only after a finished Proxy run
+    S.proxy.deep = true;
+    await A['run-proxy-search']();
   },
   async 'open-proc'(k) { S.msel = k; S.uncFor = null; S.prevScore = null; S.showAllTech = S.showAllBio = false; S.mact = await sheetFor(k); render(); },
   async 'open-db'(k) { S.mdb = k; S.msel = null; S.mact = null; await go('modell'); },
@@ -911,6 +967,8 @@ let invT;
 document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.id === 'invQ') { clearTimeout(invT); invT = setTimeout(() => { S.invQ = el.value; render(); }, 160); }
+  else if (el.id === 'pq') { S.proxy.q = el.value; }
+  else if (el.id === 'ploc') { S.proxy.loc = (el.value || '').trim(); }
   else if (el.dataset.np && S.newp && el.type !== 'radio' && el.type !== 'checkbox') S.newp[el.dataset.np] = el.value;
   else if (el.id === 'mpQ') { S.mpicker.q = el.value; const pos = el.selectionStart; renderDialog(); const box = $('mpQ'); box.focus(); box.setSelectionRange(pos, pos); }
   else if (el.dataset.ped || el.id === 'uncBasic') { const h = $('pedHint'); if (h) h.textContent = pedigreeHint(); }
@@ -923,6 +981,7 @@ $('dlg').addEventListener('close', () => { S.picker = S.mpicker = S.chooser = S.
 $('dlg').addEventListener('cancel', ev => { if (S.confirm?.running || (S.newp?.job?.state === 'läuft' && !['premise', 'premise-setup', 'exiobase'].includes(S.newp.job.source))) ev.preventDefault(); });
 
 loadPrefs();
+syncThemeToggle();
 renderBusy();
 window.addEventListener('resize', positionTour);
 window.addEventListener('scroll', positionTour, { passive: true });

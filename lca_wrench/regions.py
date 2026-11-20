@@ -57,7 +57,12 @@ _NOT_IN_UCTE = {"GB", "IE", "NO", "SE", "FI", "DK", "IS", "EE", "LV", "LT", "CY"
 
 
 def resolve(text: str | None) -> str | None:
-    """A location code for free text: a code as it is ("CH", "RER", "ENTSO-E"), or a country or region name."""
+    """A location code for free text: a code as it is ("CH", "RER", "ENTSO-E"), or a country or region name.
+
+    Also tolerates light typos ("Indai" → IN, "Germny" → DE) via close-match on EN/DE names.
+    """
+    import difflib
+
     s = (text or "").strip()
     if not s:
         return None
@@ -70,6 +75,21 @@ def resolve(text: str | None) -> str | None:
     for code, (en, de, _c) in COUNTRIES.items():  # a name started ("switz", "deutsch")
         if len(low) >= 4 and (en.lower().startswith(low) or de.lower().startswith(low)):
             return code
+    # spelling mistakes / near matches
+    if len(low) >= 4:
+        pool: list[tuple[str, str]] = []
+        for code, (en, de, _c) in COUNTRIES.items():
+            pool.append((en.lower(), code))
+            pool.append((de.lower(), code))
+        for name, code in REGION_NAMES.items():
+            pool.append((name, code))
+        names = [n for n, _ in pool]
+        hit = difflib.get_close_matches(low, names, n=1, cutoff=0.72)
+        if hit:
+            want = hit[0]
+            for n, code in pool:
+                if n == want:
+                    return code
     return s.upper() if re.fullmatch(r"[A-Za-z]{2,3}", s) else s
 
 
