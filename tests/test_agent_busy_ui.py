@@ -37,7 +37,7 @@ def test_hold_markup_is_edge_glow_not_modal():
     assert "aria-modal" not in hold
     assert "agent-hold-hue" in hold
     assert "agent-hold-status" in hold or "agentHoldTitle" in hold
-    assert "Agent working" in hold or "Agent arbeitet" in hold
+    assert "Agent is working" in hold or "Agent arbeitet" in hold
     # U8: no center strip / card
     assert "agent-hold-strip" not in hold
     assert "agent-hold-card" not in hold
