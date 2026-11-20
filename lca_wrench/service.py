@@ -520,7 +520,7 @@ def search_options() -> dict:
             "compartments": [c for c in COMPARTMENTS if c in comps]}
 
 
-def proxy_search(q: str, location: str | None = None, limit: int = 20) -> dict:
+def proxy_search(q: str, location: str | None = None, limit: int = 20, context: str | None = None) -> dict:
     """Planet A hybrid / geo-proxy search (separate from keyword ``search``).
 
     Prefer in-process import; if Wrench venv lacks deps (e.g. grpc), shell out to
@@ -534,7 +534,9 @@ def proxy_search(q: str, location: str | None = None, limit: int = 20) -> dict:
     try:
         from lca.wrench_proxy.search import proxy_search_for_wrench
 
-        return proxy_search_for_wrench(q or "", location=location or "", limit=limit)
+        return proxy_search_for_wrench(
+            q or "", location=location or "", limit=limit, context=context or ""
+        )
     except ImportError:
         pass
 
@@ -575,6 +577,8 @@ def proxy_search(q: str, location: str | None = None, limit: int = 20) -> dict:
         q or "",
         "--loc",
         location or "",
+        "--context",
+        context or "",
         "--limit",
         str(int(limit)),
     ]

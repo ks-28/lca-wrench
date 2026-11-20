@@ -426,9 +426,9 @@ def get_search(q: str = "", loc: str | None = None, limit: int = 60, db: str | N
 
 
 @app.get("/api/search/proxy")
-def get_search_proxy(q: str = "", loc: str | None = None, limit: int = 20):
+def get_search_proxy(q: str = "", loc: str | None = None, limit: int = 20, context: str = ""):
     """Planet A proxy / hybrid search (rail view Proxy). Does not replace /api/search."""
-    return run(s.proxy_search, q, loc or None, min(max(limit, 1), 50))
+    return run(s.proxy_search, q, loc or None, min(max(limit, 1), 50), context or "")
 
 
 @app.get("/api/search/options")

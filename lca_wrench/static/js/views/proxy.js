@@ -23,7 +23,7 @@ export function vProxy() {
       ? spellingNote(rows) + rows.map(resultRow).join('')
       : `<p class="empty">${S.proxy.q
         ? t('Kein Proxy-Treffer für «{q}». Versuch ecoinvent-Englisch (z.B. «steel production», «reinforcing steel») oder Ort weglassen.', { q: esc(S.proxy.q) })
-        : t('Oben suchen: Planet-A Hybrid (Embeddings + Geo-Proxy). Treffer links; rechts öffnet sich das Prozess-Datenblatt wenn du einen Treffer anklickst.')}</p>`;
+        : t('Freitext: was du brauchst (Englisch, ecoinvent-nah). Ort separat als Code (IN, DE, RER…). Begründung kommt von der Suche — nicht von Chat.')}</p>`;
 
   const notices = (S.proxy.ui_notices || []).slice(0, 6)
     .map(n => `<li>${esc(n)}</li>`).join('');
@@ -33,6 +33,7 @@ export function vProxy() {
       ? `<div class="card" style="padding:12px 14px">
           ${S.proxy.summary ? `<p style="margin:0 0 6px;font-size:14px"><b>${t('Warum diese Treffer')}</b> — ${esc(S.proxy.summary)}</p>` : ''}
           ${notices ? `<ul style="margin:0;padding-left:1.2em;font-size:13px;color:var(--muted)">${notices}</ul>` : ''}
+          <p class="muted" style="margin:8px 0 0;font-size:12px">${t('Begründung = Hybrid-/Geo-Regeln im Code (deterministisch). Claude/Agent kann zusätzlich erklären, ersetzt das hier nicht.')}</p>
         </div>`
       : '';
 
@@ -45,13 +46,18 @@ export function vProxy() {
 
   const err = S.proxy.error ? `<p class="empty" role="alert">${esc(S.proxy.error)}</p>` : '';
 
-  return `${explain(t('Proxy-Suche (Planet A) ist getrennt von der Wrench-Stichwortsuche unter Daten. Links: Treffer + Begründung. Rechts: Datenblatt nach Klick.'))}
+  return `${explain(t('Proxy = strukturierte Suche (Text + Ort), keine Chat-Box. Agent soll query + location aufrufen; UI zeigt Code-Begründungen.'))}
   ${status}
   <div class="dataview proxyview">
     <aside class="card plist" aria-label="${t('Proxy-Suche')}">
       <form id="proxySearchForm" class="reslist" style="gap:6px">
-        <input type="search" id="pq" placeholder="${t('z.B. steel production, reinforcing steel')}" value="${esc(S.proxy.q)}" aria-label="${t('Prozess suchen')}" ${loading ? 'disabled' : ''}>
-        <input type="text" id="ploc" list="proxyLocList" value="${esc(S.proxy.loc)}" placeholder="${t('Ort, z.B. DE (optional)')}" aria-label="${t('Ort')}" autocomplete="off" ${loading ? 'disabled' : ''}>${locList('proxyLocList')}
+        <label class="f" style="margin:0"><span>${t('Was suchst du?')}</span>
+          <textarea id="pq" rows="4" placeholder="${t('z.B. section bar rolling, steel — oder reinforcing steel for construction')}" aria-label="${t('Freitext Prozess/Produkt')}" ${loading ? 'disabled' : ''}>${esc(S.proxy.q)}</textarea>
+        </label>
+        <label class="f" style="margin:0"><span>${t('Ort (ecoinvent-Code)')}</span>
+          <input type="text" id="ploc" list="proxyLocList" value="${esc(S.proxy.loc)}" placeholder="${t('z.B. IN, DE, RER — nicht «India»')}" aria-label="${t('Ort')}" autocomplete="off" ${loading ? 'disabled' : ''}>${locList('proxyLocList')}
+        </label>
+        <p class="muted" style="font-size:12px;margin:0">${t('Tipp: «India» → Code IN. Oder in Freitext schreiben: location=IN')}</p>
         <button class="btn primary" type="submit" ${loading ? 'disabled' : ''}>${loading ? t('Suche …') : t('Proxy suchen')}</button>
       </form>
       ${err}
