@@ -374,10 +374,10 @@ span.formula{font-family:var(--font-num);font-size:13px;background:var(--surface
 .movelist{max-height:220px;overflow:auto;font-size:13px;margin:0;padding-left:18px}
 button.chip{border:0;cursor:pointer;font-family:inherit}
 
-/* Planet A #248 — Comet-style agent busy: soft hue + strip; clicks blocked, model readable */
+/* Planet A #248 — Comet-style agent busy: edge/vignette glow only; clicks blocked; model readable */
 .agent-hold{position:fixed;inset:0;z-index:40;pointer-events:auto;background:transparent}
 .agent-hold[hidden]{display:none!important}
-.agent-hold-hue{position:absolute;inset:0;pointer-events:none;background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 28%,transparent)}
-.agent-hold-strip{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1;pointer-events:none;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:color-mix(in srgb,var(--surface) 88%,var(--accent-soft));border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));box-shadow:0 4px 18px color-mix(in srgb,var(--fg) 10%,transparent);font-size:13px;font-weight:500;color:var(--accent-ink);white-space:nowrap;max-width:min(92vw,420px)}
-.agent-hold-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:agentHoldPulse 1.2s ease-in-out infinite}
-@keyframes agentHoldPulse{0%,100%{opacity:.45;transform:scale(.9)}50%{opacity:1;transform:scale(1.05)}}
+/* U7: no full-field wash — transparent fill + inset ring/vignette only */
+.agent-hold-hue{position:absolute;inset:0;pointer-events:none;background:transparent;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 42%,transparent),inset 0 0 56px 12px color-mix(in srgb,var(--accent) 24%,transparent),inset 0 0 120px 36px color-mix(in srgb,var(--accent) 10%,transparent)}
+/* U8: no center bar — sr-only status for a11y (aria-live on #agentHold) */
+.agent-hold-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;pointer-events:none}

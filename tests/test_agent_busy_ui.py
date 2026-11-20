@@ -1,6 +1,6 @@
-"""#248 U7/U8 — Comet-style agent busy UX (static contract).
+"""#248 U7–U12 — Comet-style agent busy UX (static contract).
 
-Soft hue + strip layover; not heavy opaque modal. pointer-events block clicks.
+Edge/vignette glow only; no full-field wash; no center bar. pointer-events block clicks.
 """
 
 from __future__ import annotations
@@ -17,28 +17,44 @@ def _agent_hold_css_block(css: str) -> str:
     return m.group(1)
 
 
-def test_hold_markup_is_comet_strip_not_modal():
+def _hue_rule(block: str) -> str:
+    m = re.search(r"\.agent-hold-hue\{([^}]*)\}", block)
+    assert m, "missing .agent-hold-hue rule"
+    return m.group(1)
+
+
+def test_hold_markup_is_edge_glow_not_modal():
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     assert 'id="agentHold"' in html
     hold = html.split('id="agentHold"', 1)[1].split('<div class="toast"', 1)[0]
     assert "aria-modal" not in hold
     assert "agent-hold-hue" in hold
-    assert "agent-hold-strip" in hold
+    assert "agent-hold-status" in hold or "agentHoldTitle" in hold
+    # U8: no center strip / card
+    assert "agent-hold-strip" not in hold
     assert "agent-hold-card" not in hold
 
 
-def test_hold_css_soft_hue_blocks_pointer_events():
+def test_hold_css_edge_only_no_center_bar():
+    """U7 + U12: edge vignette only; U8: no centered strip."""
     css = (STATIC / "app.css").read_text(encoding="utf-8")
     block = _agent_hold_css_block(css)
-    assert ".agent-hold-hue" in block
-    assert ".agent-hold-strip" in block
+    hue = _hue_rule(block)
+
     assert "pointer-events:auto" in block.replace(" ", "") or "pointer-events: auto" in block
     assert "backdrop-filter" not in block
-    assert "place-items:center" not in block.replace(" ", "").replace("place-items: center", "PLACE")
-    # Soft tint — accent ≤ ~14% in color-mix (not 35% fg wall)
-    assert re.search(r"color-mix\([^)]*var\(--accent\)\s+(\d+)%", block)
-    pct = int(re.search(r"color-mix\([^)]*var\(--accent\)\s+(\d+)%", block).group(1))
-    assert pct <= 14, f"hue too strong: {pct}%"
+    assert "place-items:center" not in block.replace(" ", "")
+
+    # U7/U12: hue fill must be transparent — no full-field accent/fg wash
+    assert re.search(r"background\s*:\s*transparent", hue), "hue must use transparent background"
+    assert "box-shadow" in hue and "inset" in hue, "edge glow requires inset box-shadow"
+    # Forbid wash-style color-mix fill on .agent-hold-hue background
+    assert not re.search(r"background\s*:\s*color-mix", hue), "no full-field color-mix wash on hue"
+
+    # U8/U12: no center bar positioning
+    assert "left:50%" not in block.replace(" ", "")
+    assert "translateX(-50%)" not in block.replace(" ", "")
+    assert ".agent-hold-strip" not in block
 
 
 def test_sync_agent_hold_still_toggles_hidden():
