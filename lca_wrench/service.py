@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import pickle
 import re
 import shutil
@@ -1247,17 +1248,34 @@ _WATCHED = ("lci/databases.db", "lci/databases.db-wal", "databases.json", "metho
 _known: dict[str, dict] = {}  # project -> {"stamp", "mods", "roles"}
 EXTERNAL: dict = {"count": 0, "what": []}
 # Planet A Phase 1 (#248): agent MCP writes — UI poll refreshes + hold overlay
-AGENT: dict = {"busy": False, "mutations": 0, "what": ""}
+# beat + TTL: crash after busy:true must not stick forever; MCP heartbeats during long calc.
+AGENT: dict = {"busy": False, "mutations": 0, "what": "", "beat": 0.0}
+AGENT_BUSY_TTL_S = float(os.environ.get("WRENCH_AGENT_BUSY_TTL_S", "45"))
 
 
 def set_agent_busy(busy: bool) -> dict:
     AGENT["busy"] = bool(busy)
+    AGENT["beat"] = time.monotonic() if busy else 0.0
     return {"ok": True, "busy": AGENT["busy"]}
+
+
+def agent_busy_effective() -> bool:
+    """True only while busy and last heartbeat within TTL; auto-clears stale hold."""
+    if not AGENT.get("busy"):
+        return False
+    age = time.monotonic() - float(AGENT.get("beat") or 0.0)
+    if age > AGENT_BUSY_TTL_S:
+        AGENT["busy"] = False
+        AGENT["beat"] = 0.0
+        return False
+    return True
 
 
 def bump_agent_mutation(what: str = "api") -> None:
     AGENT["mutations"] = int(AGENT.get("mutations") or 0) + 1
     AGENT["what"] = what
+    if AGENT.get("busy"):
+        AGENT["beat"] = time.monotonic()  # successful agent write also counts as heartbeat
 
 
 def _stamp() -> tuple:
@@ -1324,5 +1342,5 @@ def poll() -> dict:
         "external": EXTERNAL["count"],
         "what": EXTERNAL["what"],
         "mutations": int(AGENT.get("mutations") or 0),
-        "agent_busy": bool(AGENT.get("busy")),
+        "agent_busy": agent_busy_effective(),
     }
