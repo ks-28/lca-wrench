@@ -30,6 +30,7 @@ const EN = {
   'Erklärungen an': 'Help on',
   'Agent': 'Agent',
   'Agent bearbeitet …': 'Agent is editing…',
+  'Agent arbeitet …': 'Agent working…',
   'Bitte warten — das Modell ändert sich per MCP. Nicht parallel klicken.':
     'Please wait — the model is changing via MCP. Do not click in parallel.',
   'Agent hat das Modell geändert. Die Ansicht ist neu geladen.':

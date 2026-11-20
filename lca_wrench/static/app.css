@@ -374,8 +374,10 @@ span.formula{font-family:var(--font-num);font-size:13px;background:var(--surface
 .movelist{max-height:220px;overflow:auto;font-size:13px;margin:0;padding-left:18px}
 button.chip{border:0;cursor:pointer;font-family:inherit}
 
-/* Planet A #248 — agent busy hold while MCP mutates */
-.agent-hold{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:color-mix(in srgb,var(--fg) 35%,transparent);backdrop-filter:blur(2px)}
+/* Planet A #248 — Comet-style agent busy: soft hue + strip; clicks blocked, model readable */
+.agent-hold{position:fixed;inset:0;z-index:40;pointer-events:auto;background:transparent}
 .agent-hold[hidden]{display:none!important}
-.agent-hold-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 24px;max-width:380px;box-shadow:0 12px 40px color-mix(in srgb,var(--fg) 18%,transparent);display:flex;flex-direction:column;gap:8px}
-.agent-hold-card h2{font-size:20px}
+.agent-hold-hue{position:absolute;inset:0;pointer-events:none;background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 28%,transparent)}
+.agent-hold-strip{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1;pointer-events:none;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:color-mix(in srgb,var(--surface) 88%,var(--accent-soft));border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));box-shadow:0 4px 18px color-mix(in srgb,var(--fg) 10%,transparent);font-size:13px;font-weight:500;color:var(--accent-ink);white-space:nowrap;max-width:min(92vw,420px)}
+.agent-hold-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:agentHoldPulse 1.2s ease-in-out infinite}
+@keyframes agentHoldPulse{0%,100%{opacity:.45;transform:scale(.9)}50%{opacity:1;transform:scale(1.05)}}

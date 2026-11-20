@@ -48,11 +48,11 @@
   <main id="main"></main>
 </div>
 <dialog id="dlg" aria-label="Dialog"><div id="dlgBody"></div></dialog>
-<div class="agent-hold" id="agentHold" hidden role="dialog" aria-modal="true" aria-labelledby="agentHoldTitle">
-  <div class="agent-hold-card">
-    <p class="eyebrow" id="agentHoldEyebrow">Agent</p>
-    <h2 id="agentHoldTitle">Agent is editing…</h2>
-    <p id="agentHoldBody" class="muted">Please wait — the model is changing from MCP. Do not edit in parallel.</p>
+<div class="agent-hold" id="agentHold" hidden aria-live="polite" aria-atomic="true">
+  <div class="agent-hold-hue" aria-hidden="true"></div>
+  <div class="agent-hold-strip" role="status">
+    <span class="agent-hold-dot" aria-hidden="true"></span>
+    <span id="agentHoldTitle">Agent working…</span>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>

@@ -67,7 +67,7 @@ def _ensure_test_project() -> bool:
 
 
 # Tests that need no Brightway data at all: they run on a fresh clone, before setup_daten.py.
-NO_DATA = {"test_lock.py", "test_agent_busy.py", "test_create_process_guards.py",
+NO_DATA = {"test_lock.py", "test_agent_busy.py", "test_agent_busy_ui.py", "test_create_process_guards.py",
            "test_i18n.py::test_every_server_text_has_english",
            "test_i18n.py::test_every_ui_text_has_english", "test_i18n.py::test_rendered_later_in_the_readers_language"}
 

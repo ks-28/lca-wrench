@@ -1004,13 +1004,10 @@ function syncAgentHold(busy) {
   if (!el) return;
   const on = !!busy;
   el.hidden = !on;
+  document.body.classList.toggle('agent-busy', on);
   if (on) {
     const title = $('agentHoldTitle');
-    const body = $('agentHoldBody');
-    const eye = $('agentHoldEyebrow');
-    if (eye) eye.textContent = t('Agent');
-    if (title) title.textContent = t('Agent bearbeitet …');
-    if (body) body.textContent = t('Bitte warten — das Modell ändert sich per MCP. Nicht parallel klicken.');
+    if (title) title.textContent = t('Agent arbeitet …');
   }
 }
 async function pollExternal() {
