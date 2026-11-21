@@ -721,7 +721,13 @@ document.addEventListener('submit', ev => {
       await loadState(await api('/api/models/db', { name })); S.newDb = false; S.mdb = name; S.msel = null; S.mact = null; await loadView(); render();
       toast(t('Modell «{name}» angelegt. Jetzt den ersten Prozess anlegen.', { name }));
     } else if (f.id === 'newProcForm') {
-      const r = await api('/api/models/process', { database: S.mdb, name: $('npName').value.trim(), unit: $('npUnit').value, location: $('npLoc').value.trim() || 'GLO', comment: ($('npDesc')?.value || '').trim() });
+      const name = $('npName').value.trim();
+      const unit = ($('npUnit').value || '').trim();
+      const location = ($('npLoc').value || '').trim();
+      if (!name) { toast(t('Bitte einen Namen eingeben.')); return; }
+      if (!unit) { toast(t('Bitte eine Einheit wählen.')); return; }
+      if (!location) { toast(t('Bitte einen Ort / eine Region eingeben.')); return; }
+      const r = await api('/api/models/process', { database: S.mdb, name, unit, location, comment: ($('npDesc')?.value || '').trim() });
       S.newProc = false; await loadState(); S.msel = r.id; S.prevScore = null; await loadView(); render();
       toast(t('Prozess angelegt. Füge jetzt Inputs hinzu.'));
     } else if (f.id === 'newSetupForm') {

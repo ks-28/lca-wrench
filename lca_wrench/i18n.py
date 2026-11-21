@@ -115,6 +115,8 @@ EN = {
     "«{name}» ist eine Hintergrund-Datenbank und bleibt unverändert. Kopiere den Prozess in ein eigenes Modell, um ihn zu ändern.":
         "“{name}” is a background database and stays unchanged. Copy the activity into your own model to change it.",
     "Bitte einen Namen eingeben.": "Please enter a name.",
+    "Bitte eine Einheit wählen.": "Please choose a unit.",
+    "Bitte einen Ort / eine Region eingeben.": "Please enter a location / region.",
     "Eine Datenbank «{name}» gibt es schon.": "A database “{name}” already exists.",
     "Modell «{name}» importiert": "Model “{name}” imported",
     "«{name}» wird noch von {n} Prozess(en) in anderen Datenbanken verwendet.": "“{name}” is still used by {n} activity(-ies) in other databases.",

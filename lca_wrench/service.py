@@ -688,8 +688,8 @@ def respell(q: str, dbs: list[str]) -> str | None:
 
 # ---------- activity detail ----------
 
-def activity(activity_id: int | str, method: tuple) -> dict:
-    d = models.process_detail(activity_id, tuple(method))
+def activity(activity_id: int | str, method: tuple | None) -> dict:
+    d = models.process_detail(activity_id, tuple(method) if method is not None else None)
     roles = models.roles()
     if d["editable"]:
         d["edit_mode"] = "model"

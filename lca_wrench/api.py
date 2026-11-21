@@ -138,10 +138,11 @@ class ProjectIn(BaseModel):
 
 class ActIn(BaseModel):
     id: str  # Brightway ids are 64-bit, too large for JavaScript numbers
-    method: list[str]
+    method: list[str] | None = None
 
 
 class CalcIn(ActIn):
+    method: list[str]  # calc / graph need a method; activity sheet may omit
     amount: float = Field(1.0, gt=0)
 
 
@@ -469,7 +470,8 @@ def post_export_setup(body: ExportSetupIn):
 
 @app.post("/api/activity")
 def post_activity(body: ActIn):
-    return run(s.activity, body.id, _method(body.method))
+    method = _method(body.method) if body.method else None
+    return run(s.activity, body.id, method)
 
 
 # ---------- results ----------
